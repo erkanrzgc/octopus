@@ -1,0 +1,10 @@
+{
+  "name": "octopus-v1",
+  "description": "Octópus v1 test karışımı — Türkçe-baskın + siber CVE. Temiz yüklenen 4 kaynak. secdata/Primus/kod/reasoning sonra eklenecek (~62/23/9/6 hedef).",
+  "sources": [
+    {"name": "lumees-tr",   "dataset": "lumees/turkish-corpus-100b",                 "config": "pretrain",    "text_field": "text", "weight": 0.50},
+    {"name": "bellaturca",  "dataset": "turkish-nlp-suite/BellaTurca",               "config": "OzenliDerlem", "text_field": "text", "weight": 0.15},
+    {"name": "fineweb2-tr", "dataset": "HuggingFaceFW/fineweb-2",                    "config": "tur_Latn",    "text_field": "text", "weight": 0.15},
+    {"name": "alican-cve",  "dataset": "AlicanKiraz0/All-CVE-Records-Training-Dataset",                       "template": "{User}\n\n{Assistant}", "weight": 0.20}
+  ]
+}

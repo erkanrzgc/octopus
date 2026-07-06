@@ -1,0 +1,12 @@
+{
+  "name": "octopus-v2",
+  "description": "Octópus v2 — 6 kaynak, token-payı hedefli (%70 TR / %30 siber). weight = HEDEF token-payı. Kod+reasoning v3'te eklenince ~62/23/9/6'ya çekilecek.",
+  "sources": [
+    {"name": "lumees-tr",      "dataset": "lumees/turkish-corpus-100b",   "config": "pretrain",     "text_field": "text", "weight": 0.42},
+    {"name": "bella-ozenli",   "dataset": "turkish-nlp-suite/BellaTurca",  "config": "OzenliDerlem",  "text_field": "text", "weight": 0.10},
+    {"name": "bella-akademik", "dataset": "turkish-nlp-suite/BellaTurca",  "config": "AkademikDerlem","text_field": "text", "weight": 0.08},
+    {"name": "fineweb2-tr",    "dataset": "HuggingFaceFW/fineweb-2",       "config": "tur_Latn",      "text_field": "text", "weight": 0.10},
+    {"name": "secdata",        "dataset": "deardaniel/secdata-raw",        "data_files": "sources_manifest.json/raw_docs_chunk_*.jsonl", "text_field": "text", "weight": 0.18},
+    {"name": "alican-cve",     "dataset": "AlicanKiraz0/All-CVE-Records-Training-Dataset",            "template": "{User}\n\n{Assistant}", "weight": 0.12}
+  ]
+}

@@ -1,0 +1,56 @@
+# --- Python / venv ---
+.venv/
+.venv-*/
+__pycache__/
+*.pyc
+*.pyo
+.ruff_cache/
+.pytest_cache/
+
+# --- Büyük artefaktlar (gitignore) ---
+data/corpus/
+data/raw/
+data/sft/*.jsonl
+data/sft/manifest.json
+data/bin/
+checkpoints/
+checkpoints_web/
+checkpoints_sft/
+runs/
+models/
+rag/chroma/
+*.safetensors
+*.bin
+*.gguf
+*.pt
+*.ckpt
+
+# --- HF / cache ---
+.cache/
+.hf_cache/
+.huggingface/
+
+# NOT: tokenizer çıktısı (*.model / *.vocab) küçük ve KÖK artefakt → versiyonlanır, ignore EDİLMEZ.
+
+# --- OS / editör ---
+.DS_Store
+Thumbs.db
+*.log
+.obsidian/workspace*.json
+
+# --- Ek büyük artefaktlar / ortam (v0.7) ---
+checkpoints_fw/
+checkpoints_sft/octopus-gemma-v*-adapter/
+octopus_*.tgz
+*.tgz
+scratchpad/
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# --- generated / run artefaktları ---
+unsloth_compiled_cache/
+runpod_val_log.jsonl
+*_val_log.jsonl

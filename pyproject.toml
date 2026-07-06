@@ -1,0 +1,22 @@
+[project]
+name = "octopus"
+version = "0.0.1"
+description = "Türkçe-önce, siber güvenlik odaklı, sıfırdan eğitilen dil modeli"
+requires-python = ">=3.10"
+dependencies = [
+    "sentencepiece>=0.2.0",
+    "datasets>=2.20.0",
+    "huggingface-hub>=0.24.0",
+    "transformers>=4.44.0",
+    "tqdm>=4.66.0",
+    "numpy>=1.26.0",
+]
+
+# Pretraining bağımlılıkları (torch cu128 — Blackwell/RTX 5060) tokenizer fazında GEREKMEZ;
+# model fazına geçince ayrı bir index ile eklenecek. Şimdilik hafif tutuyoruz.
+[project.optional-dependencies]
+train = []
+
+[tool.uv]
+# Bu repo paketlenebilir bir kütüphane değil; `uv sync` yalnızca bağımlılıkları kursun.
+package = false
