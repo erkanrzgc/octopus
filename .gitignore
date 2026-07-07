@@ -54,3 +54,6 @@ Thumbs.db
 unsloth_compiled_cache/
 runpod_val_log.jsonl
 *_val_log.jsonl
+
+# Agent harness runtime denetim gunlugu
+lab/logs/
