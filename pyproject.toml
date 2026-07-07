@@ -20,3 +20,16 @@ train = []
 [tool.uv]
 # Bu repo paketlenebilir bir kütüphane değil; `uv sync` yalnızca bağımlılıkları kursun.
 package = false
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+# Repo kökünü path'e ekle: `agent` ve `data.sft.*` importları çözülsün.
+# importlib modu: test dosyalarını yol üzerinden import eder → tests/agent 'agent'
+# gerçek paketiyle çakışmaz (parent dizini sys.path'e sokmaz).
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "--import-mode=importlib"
