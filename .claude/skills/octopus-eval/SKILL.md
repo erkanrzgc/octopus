@@ -23,7 +23,7 @@ Fine-tune bittikten sonra ÜÇ eksende ölç. Çalışan referans: `Desktop\cybe
 ## 3. Fine-tune brittleness red-team (Cisco 2026 bulgusu)
 Siber fine-tuning "representation drift" yaratıp modeli **yüzey-forma kırılgan** yapabilir (obfuscation'da
 kaçırır). Deploy öncesi:
-- Taban (Qwen3-8B) vs fine-tuned Octópus'u **kanonik girdilerde** karşılaştır → hangi komut aileleri en çok değişti.
+- Taban (Turkish-Gemma-9b-v0.1) vs fine-tuned Octópus'u **kanonik girdilerde** karşılaştır → hangi komut aileleri en çok değişti.
 - O aileleri **davranış-koruyan varyantlarla** red-team et (ör. encode/obfuscate edilmiş ama aynı işi yapan
   komut). Amaç her kaçışı öngörmek değil; fine-tuning'in kırılganlaştırdığı yerleri bulmak.
 

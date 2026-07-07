@@ -94,15 +94,17 @@ Bu gerçek bir kusurdu ama tek başına çöpü çözmedi → asıl sebep 4bit k
 
 ---
 
-## 🎯 STRATEJİ (2026-07-03) — FINE-TUNING
+## 🎯 STRATEJİ — FINE-TUNING (güncel: 2026-07-05'te taban+yöntem değişti)
 
-From-scratch pretraining **bırakıldı** (maliyet: RunPod $60-150+, milyarlarca token). **QLoRA fine-tuning**e
-dönüldü (~$3-15, birkaç saat, çok daha yüksek yetenek tavanı). Karar + gerekçe + kanıt: **ADR 0002**.
+From-scratch pretraining **bırakıldı** (maliyet: RunPod $60-150+, milyarlarca token). Fine-tuning'e dönüldü
+(~$3-15, birkaç saat, çok daha yüksek yetenek tavanı). Karar: **ADR 0002** (dönüş) + **ADR 0003** (taban/yöntem).
 
-- **Taban:** `Qwen3-8B` (Türkçe-native + Apache 2.0 + yerel-önce). Yükseltme: `Qwen3-14B`.
-- **Kural:** DİL tabanda, BİLGİ sonradan. Türkçe akıcılığı LoRA'yla enjekte edilemez → Qwen3; siber bilgi
-  QLoRA'yla eklenir (kanıt: `DexopT/Qwen3-4B-Cybersecurity`, `CyberSecQwen-4B`, ve atamız cyberm4fia).
-- **Motor:** Unsloth QLoRA (r=32 başlangıç, seq 1024→2048, lr 2e-4, AdamW8bit).
+- **Taban (GÜNCEL):** `ytu-ce-cosmos/Turkish-Gemma-9b-v0.1` — Türkçe-native (continual-pt+SFT+DPO), Gemma-2.
+  **Yöntem = bf16 LoRA** (4-bit NF4 DEĞİL — merge'li tabanı bozar). Motor: düz `transformers`+`peft`+TRL.
+- **⚠️ TARİHSEL:** v0.1/v0.2 `Qwen3-8B` + Unsloth QLoRA ile eğitildi (aşağıdaki v0.1/v0.2 blokları), ama Türkçe
+  akıcılık pürüzlüydü → 2026-07-05'te Türkçe-native Turkish-Gemma + bf16 LoRA'ya geçildi (v0.6/v0.7). Detay: ADR 0003.
+- **Kural:** DİL tabanda, BİLGİ sonradan. Türkçe akıcılığı LoRA'yla enjekte edilemez → Türkçe-**native** taban şart.
+- **Hiperparametre:** r=32, α=32, 7 modül, seq 1024, lr 2e-4, ~900 adım (kanonik `train/sft_bf16.py`).
 
 ## ✅ SFT VERİ HAZIR (2026-07-03) — hibrit karışım
 

@@ -15,7 +15,7 @@
 | Skill | Ne zaman | Ne yapar |
 |---|---|---|
 | `octopus-data` | SFT veri lazım | Türkçe+siber kaynakları `messages`'a normalize + persona + dedup + split |
-| `octopus-finetune` | modeli eğit | QLoRA (Qwen3-8B, Unsloth) veri→train→eval→merge→GGUF + para-checkpoint |
+| `octopus-finetune` | modeli eğit | bf16 LoRA (Turkish-Gemma-9b, transformers+peft+TRL) veri→train→eval→merge→GGUF + para-checkpoint |
 | `octopus-eval` | eğitim bitti | ppl + safety/balance + brittleness red-team |
 
 ## Subagent haritası (mevcut global agent'ları kullan — yeni icat etme)

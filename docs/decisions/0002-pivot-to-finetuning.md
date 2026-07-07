@@ -1,7 +1,10 @@
 # ADR 0002 — From-scratch'ten fine-tuning'e dönüş + taban model kararı
 
 - **Tarih:** 2026-07-03
-- **Durum:** Kabul edildi (sahip kararı — erkanrzgc)
+- **Durum:** **Kısmen superseded.** "Fine-tuning'e dönüş" kararı GEÇERLİ. Ama **taban modeli ve kuantizasyon
+  yöntemi değişti** → [ADR 0003](0003-pivot-to-turkish-gemma-bf16.md): taban `Qwen3-8B` → `Turkish-Gemma-9b-v0.1`,
+  yöntem `QLoRA (Unsloth 4-bit)` → `bf16 LoRA (düz transformers)`. (Qwen3-8B QLoRA yalnız v0.1/v0.2'de kullanıldı;
+  v0.6+ Turkish-Gemma bf16.) Aşağıdaki "Qwen3-8B / QLoRA / Unsloth" ifadeleri bu yüzden TARİHSEL — güncel yol için ADR 0003'e bak.
 - **Yerini aldığı:** [ADR 0001](0001-from-scratch-turkish-first.md) (from-scratch pretraining) — **superseded**
 - **Dizin:** `C:\Users\erkanrzgc\Desktop\Octopus` (ASCII)
 
