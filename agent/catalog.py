@@ -5,6 +5,12 @@ from dataclasses import dataclass
 from agent.catalog_data import CATALOG_DATA
 
 
+# Kapsam (scope) icin AG hedefi tasiyan parametre anahtarlari — IP/host/URL/domain.
+# TEK KAYNAK: hem policy (scope kilidi) hem executor (bu + gorsel ekstralar) buradan okur.
+# NOT: arayuz/dosya AG hedefi DEGIL (yerel arayuz/dosya) -> scope anahtari degil.
+TARGET_KEYS: tuple[str, ...] = ("hedef", "url", "hedef_url", "domain")
+
+
 @dataclass(frozen=True)
 class ToolSpec:
     name: str

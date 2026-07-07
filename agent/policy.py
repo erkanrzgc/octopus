@@ -4,10 +4,7 @@ kendi reddiyle cift kilit)."""
 from __future__ import annotations
 from dataclasses import dataclass, field
 import ipaddress
-from agent.catalog import ToolSpec
-
-# Hedef tasiyan parametre anahtarlari (egitim verisinden).
-_TARGET_KEYS = ("hedef", "url", "hedef_url", "domain")
+from agent.catalog import ToolSpec, TARGET_KEYS
 
 
 @dataclass(frozen=True)
@@ -27,7 +24,7 @@ class LabPolicy:
         return cls(scope=[], allow_high=False)
 
     def _target(self, params: dict) -> str | None:
-        for k in _TARGET_KEYS:
+        for k in TARGET_KEYS:
             if k in params and params[k]:
                 return str(params[k])
         return None
@@ -47,6 +44,11 @@ class LabPolicy:
 
     def decide(self, spec: ToolSpec, params: dict) -> Decision:
         target = self._target(params)
+        # FAIL-CLOSED: arac hedef-alan bir param bildiriyorsa ama cagri degerlendirilebilir
+        # hedef vermediyse REDDET — yoksa hedef gizlenerek scope kilidi atlanabilir.
+        spec_has_target = any(k in spec.params for k in TARGET_KEYS)
+        if spec_has_target and target is None:
+            return Decision(False, False, f"'{spec.name}' icin hedef parametresi eksik (fail-closed)")
         if target is not None and not self._in_scope(target):
             return Decision(False, False, f"hedef '{target}' izinli kapsam disinda (lab-only)")
         if spec.risk == "high" and not self.allow_high:

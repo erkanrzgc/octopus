@@ -2,7 +2,11 @@
 gercek binary YOK, Windows'ta calisir. Faz 2: RealExecutor (WSL2/Kali subprocess)."""
 from __future__ import annotations
 from typing import Protocol
-from agent.catalog import get_spec
+from agent.catalog import get_spec, TARGET_KEYS
+
+# Mock ciktida gorunecek etiket icin: scope hedef anahtarlari + yerel gorsel ekstralar.
+# (arayuz/dosya scope hedefi DEGIL; yalniz mock cikti etiketi icin.)
+_DISPLAY_KEYS: tuple[str, ...] = TARGET_KEYS + ("arayuz", "dosya")
 
 
 class Executor(Protocol):
@@ -10,7 +14,7 @@ class Executor(Protocol):
 
 
 def _target(params: dict) -> str:
-    for k in ("hedef", "url", "hedef_url", "domain", "arayuz", "dosya"):
+    for k in _DISPLAY_KEYS:
         if params.get(k):
             return str(params[k])
     return "hedef"
