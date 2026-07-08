@@ -1,25 +1,28 @@
-# Agent Harness (Faz 1 — iskelet) Implementation Plan
+# Agent Harness (Phase 1 — skeleton) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** v0.7 modelinin ```arac``` bloklarını parse edip (mock) çalıştıran, sonucu modele geri besleyen çalışan agentic runtime iskeleti — Windows'ta bugün, gerçek binary çalıştırmadan.
+> **Note:** Code blocks below mirror the actual source in `agent/` — their inline comments/docstrings are in
+> Turkish (the product is Turkish-first). The plan prose is English.
 
-**Architecture:** Küçük tek-sorumluluklu `agent/` modülleri. Veri-güdümlü 117-araç katalog (eğitim verisinden türetilir) parser + registry + policy + mock executor + döngüyü besler. Backend soyut (`generate: list[Message] -> str`) → mock/gerçek model takılabilir.
+**Goal:** a working agentic-runtime skeleton that parses the v0.7 model's ```arac``` blocks, runs them (mock), and feeds the result back to the model — on Windows today, without running any real binary.
 
-**Tech Stack:** Python 3.14, pytest, stdlib (dataclasses, re, json, subprocess[Faz2]). Yeni bağımlılık YOK.
+**Architecture:** small single-responsibility `agent/` modules. A data-driven 117-tool catalog (derived from training data) feeds the parser + registry + policy + mock executor + loop. The backend is abstract (`generate: list[Message] -> str`) → a mock/real model plugs in.
+
+**Tech Stack:** Python 3.14, pytest, stdlib (dataclasses, re, json, subprocess[Phase 2]). NO new dependencies.
 
 ## Global Constraints
 
-- Paket yöneticisi: **uv**. Test: `uv run pytest`. Venv: `.venv` (ASCII yol).
-- Marka: model konuşmada "Ben Octópus" (ó); **kod/dosya/yol düz ASCII `agent/`**.
-- Araç isimleri + parametre anahtarları eğitim verisinden türetilir — **`data/sft/tools/build_tools.py::MASTER_TOOLS` (117) kanonik liste**.
-- Geri-besleme formatı eğitimle birebir: **`data/sft/normalize.py::flatten_tool_messages` reuse** (araç sonucu → "ARAÇ ÇIKTISI:\n…" user turu).
-- Immutable veri tipleri tercih (`@dataclass(frozen=True)` uygun yerde). Dosya <400 satır.
-- Her araç yetki-kapılı: yalnız lab/CTF/izinli. Policy varsayılan lab-only.
+- Package manager: **uv**. Tests: `uv run pytest`. Venv: `.venv` (on an ASCII path).
+- Brand: the model says "Ben Octópus" (ó) in speech; **code/files/paths are plain ASCII `agent/`**.
+- Tool names + parameter keys are derived from training data — **`data/sft/tools/build_tools.py::MASTER_TOOLS` (117) is the canonical list**.
+- The feedback format is identical to training: **reuse `data/sft/normalize.py::flatten_tool_messages`** (tool result → an "ARAÇ ÇIKTISI:\n…" user turn).
+- Prefer immutable data types (`@dataclass(frozen=True)` where appropriate). Files < 400 lines.
+- Every tool is authorization-gated: lab/CTF/authorized only. Policy defaults to lab-only.
 
 ---
 
-### Task 1: Message veri tipi + paket iskeleti
+### Task 1: Message data type + package skeleton
 
 **Files:**
 - Create: `agent/__init__.py`
@@ -90,12 +93,12 @@ git commit -m "feat(agent): Message veri tipi + paket iskeleti"
 
 ---
 
-### Task 2: Araç kataloğu (117, eğitim verisinden türetilir)
+### Task 2: Tool catalog (117, derived from training data)
 
 **Files:**
-- Create: `agent/build_catalog.py` (üretici script)
-- Create: `agent/catalog.py` (ToolSpec + CATALOG yükleyici)
-- Create: `agent/catalog_data.py` (üretilen veri — script yazar)
+- Create: `agent/build_catalog.py` (generator script)
+- Create: `agent/catalog.py` (ToolSpec + CATALOG loader)
+- Create: `agent/catalog_data.py` (generated data — written by the script)
 - Test: `tests/agent/test_catalog.py`
 
 **Interfaces:**
@@ -272,7 +275,7 @@ git commit -m "feat(agent): 117-arac katalog (egitim verisinden turetildi)"
 
 ---
 
-### Task 3: arac blok parser + geri-besleme
+### Task 3: arac block parser + feedback
 
 **Files:**
 - Create: `agent/toolcall.py`
@@ -374,7 +377,7 @@ git commit -m "feat(agent): arac blok parser + flatten geri-besleme"
 
 ---
 
-### Task 4: LabPolicy (yetki/risk kapısı)
+### Task 4: LabPolicy (authorization/risk gate)
 
 **Files:**
 - Create: `agent/policy.py`
@@ -568,7 +571,7 @@ git commit -m "feat(agent): AuditLog jsonl denetim gunlugu"
 
 ---
 
-### Task 6: Executor protokolü + MockExecutor
+### Task 6: Executor protocol + MockExecutor
 
 **Files:**
 - Create: `agent/executor.py`
@@ -658,7 +661,7 @@ git commit -m "feat(agent): Executor protokolu + MockExecutor"
 
 ---
 
-### Task 7: ToolRegistry (katalog + policy + executor + audit)
+### Task 7: ToolRegistry (catalog + policy + executor + audit)
 
 **Files:**
 - Create: `agent/registry.py`
@@ -772,7 +775,7 @@ git commit -m "feat(agent): ToolRegistry (katalog+policy+executor+audit)"
 
 ---
 
-### Task 8: Döngü (run_tool_loop)
+### Task 8: Loop (run_tool_loop)
 
 **Files:**
 - Create: `agent/loop.py`
@@ -963,7 +966,7 @@ git commit -m "feat(agent): ScriptedModel mock backend"
 
 ---
 
-### Task 10: CLI (uçtan uca demo) + tam test koşusu
+### Task 10: CLI (end-to-end demo) + full test run
 
 **Files:**
 - Create: `agent/cli.py`
@@ -972,7 +975,7 @@ git commit -m "feat(agent): ScriptedModel mock backend"
 **Interfaces:**
 - Consumes: `agent.loop.run_tool_loop`, `agent.registry.ToolRegistry`, `agent.backends.mock_model.ScriptedModel`,
   `agent.messages.Message`.
-- Produces: `run_demo(scope: list[str]) -> str` (scripted uctan uca tur, transcript metni döner);
+- Produces: `run_demo(scope: list[str]) -> str` (scripted end-to-end turn, returns transcript text);
   `main()` (argparse giris).
 
 - [ ] **Step 1: Write the failing test**
@@ -1040,7 +1043,7 @@ if __name__ == "__main__":
 Run: `uv run pytest tests/agent/ -v`
 Expected: PASS (tum modul testleri, ~24 test)
 
-- [ ] **Step 5: Manual smoke — CLI çalışıyor**
+- [ ] **Step 5: Manual smoke — CLI works**
 
 Run: `uv run python -m agent.cli --scope 10.10.10.0/24`
 Expected: transcript basilir, nmap araci cagrilir, "ARAÇ ÇIKTISI" geri beslenir, "(demo bitti)" ile biter.
@@ -1054,18 +1057,18 @@ git commit -m "feat(agent): CLI uctan uca demo (Faz 1 iskelet tamam)"
 
 ---
 
-## Faz 2 (bu plan DIŞI — sonra ayrı plan)
+## Phase 2 (OUT of scope for this plan — a separate plan later)
 
-- `agent/backends/gguf_model.py` — gerçek v0.7 modeli (GGUF Q4, llama.cpp) `__call__(messages)->str`;
-  `render_for_model` ile flatten + chat template.
-- `agent/executor.py::RealExecutor` — WSL2/Kali subprocess, komut_sablonu, timeout, policy-kapılı.
-- Katalog `command_template` alanı eklenir (gerçek CLI için).
-- Policy sertleştirme: high-risk onay akışı, dry-run modu, kapsam dosyası.
+- `agent/backends/gguf_model.py` — the real v0.7 model (GGUF Q4, llama.cpp) `__call__(messages)->str`;
+  flatten + chat template via `render_for_model`.
+- `agent/executor.py::RealExecutor` — WSL2/Kali subprocess, command template, timeout, policy-gated.
+- Add a `command_template` field to the catalog (for the real CLI).
+- Policy hardening: high-risk approval flow, dry-run mode, scope file.
 
-## Self-Review (yazar kontrolü)
+## Self-Review (author check)
 
-- **Spec kapsamı:** parser(T3)·katalog(T2)·registry(T7)·policy(T4)·executor(T6)·loop(T8)·audit(T5)·
-  backend(T9)·CLI(T10)·flatten-reuse(T3) → hepsi görevlere eşlendi ✅. Faz 2 kapsam-dışı işaretlendi.
-- **Placeholder taraması:** her adımda gerçek kod var, TBD/TODO yok ✅.
-- **Tip tutarlılığı:** `Message(role,content)`, `ToolCall(name,params)`, `ToolSpec(name,domain,risk,params)`,
-  `Decision(allowed,requires_approval,reason)`, `run_tool_loop(...)->ToolLoopResult` görevler arası tutarlı ✅.
+- **Spec coverage:** parser(T3)·catalog(T2)·registry(T7)·policy(T4)·executor(T6)·loop(T8)·audit(T5)·
+  backend(T9)·CLI(T10)·flatten-reuse(T3) → all mapped to tasks ✅. Phase 2 marked out of scope.
+- **Placeholder scan:** every step has real code, no TBD/TODO ✅.
+- **Type consistency:** `Message(role,content)`, `ToolCall(name,params)`, `ToolSpec(name,domain,risk,params)`,
+  `Decision(allowed,requires_approval,reason)`, `run_tool_loop(...)->ToolLoopResult` consistent across tasks ✅.
