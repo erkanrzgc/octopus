@@ -1,0 +1,2 @@
+# Shell scriptleri her zaman LF (Windows CRLF -> Linux/pod'da 'set: pipefail invalid' bug'ini onler)
+*.sh text eol=lf
