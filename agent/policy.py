@@ -4,7 +4,7 @@ kendi reddiyle cift kilit)."""
 from __future__ import annotations
 from dataclasses import dataclass, field
 import ipaddress
-from agent.catalog import ToolSpec, TARGET_KEYS
+from agent.catalog import ToolSpec, TARGET_KEYS, target_value
 
 
 @dataclass(frozen=True)
@@ -23,12 +23,6 @@ class LabPolicy:
     def default(cls) -> "LabPolicy":
         return cls(scope=[], allow_high=False)
 
-    def _target(self, params: dict) -> str | None:
-        for k in TARGET_KEYS:
-            if k in params and params[k]:
-                return str(params[k])
-        return None
-
     def _in_scope(self, target: str) -> bool:
         # IP/CIDR ise kapsamla karsilastir; degilse (domain vs) kapsam bos degilse ret.
         for cidr in self.scope:
@@ -43,7 +37,7 @@ class LabPolicy:
         return False
 
     def decide(self, spec: ToolSpec, params: dict) -> Decision:
-        target = self._target(params)
+        target = target_value(params)
         # FAIL-CLOSED: arac hedef-alan bir param bildiriyorsa ama cagri degerlendirilebilir
         # hedef vermediyse REDDET — yoksa hedef gizlenerek scope kilidi atlanabilir.
         spec_has_target = any(k in spec.params for k in TARGET_KEYS)

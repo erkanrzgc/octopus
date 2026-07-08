@@ -11,16 +11,9 @@ from __future__ import annotations
 import shlex
 import subprocess
 from dataclasses import dataclass
-from agent.catalog import get_spec, TARGET_KEYS
+from agent.catalog import get_spec, target_value
 
 _DEFAULT_TIMEOUT = 120
-
-
-def _target_value(params: dict) -> str | None:
-    for k in TARGET_KEYS:
-        if params.get(k):
-            return str(params[k])
-    return None
 
 
 def build_argv(tool: str, params: dict, distro: str = "kali-linux") -> list[str]:
@@ -28,7 +21,7 @@ def build_argv(tool: str, params: dict, distro: str = "kali-linux") -> list[str]
     'secenekler' shlex ile ayrilir (shell YOK -> literal token)."""
     flag_args = shlex.split(str(params.get("secenekler", "") or ""))
     argv = ["wsl.exe", "-d", distro, "--", tool, *flag_args]
-    target = _target_value(params)
+    target = target_value(params)
     if target is not None:
         argv.append(target)
     return argv
