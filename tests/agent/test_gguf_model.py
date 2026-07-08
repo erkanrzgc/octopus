@@ -1,4 +1,9 @@
-from agent.backends.gguf_model import render_prompt
+import json
+import urllib.error
+import urllib.request
+
+from agent.backends.gguf_model import GgufModel, render_prompt
+from agent.messages import Message
 
 
 class _FakeTok:
@@ -27,3 +32,75 @@ def test_render_prompt_falls_back_when_enable_thinking_unsupported():
             return "no-bos-here"                        # enable_thinking kwarg'i KABUL ETMEZ
     out = render_prompt([{"role": "user", "content": "U"}], _StrictTok())
     assert out == "no-bos-here"
+
+
+class _Resp:
+    def __init__(self, payload: dict) -> None:
+        self._data = json.dumps(payload).encode("utf-8")
+
+    def read(self) -> bytes:
+        return self._data
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def _urlopen_ok(capture: dict, payload: dict):
+    def _fake(req, timeout=None):
+        capture["url"] = req.full_url
+        capture["body"] = json.loads(req.data.decode("utf-8"))
+        return _Resp(payload)
+    return _fake
+
+
+def _urlopen_raises(exc):
+    def _fake(req, timeout=None):
+        raise exc
+    return _fake
+
+
+def test_call_builds_raw_request_and_returns_response(monkeypatch):
+    cap: dict = {}
+    monkeypatch.setattr(urllib.request, "urlopen",
+                        _urlopen_ok(cap, {"response": "Tararim ```arac```"}))
+    m = GgufModel(renderer=lambda d: "PROMPT")
+    out = m([Message("user", "10.10.10.5 tara")])
+    assert out == "Tararim ```arac```"
+    assert cap["url"].endswith("/api/generate")
+    assert cap["body"]["raw"] is True
+    assert cap["body"]["prompt"] == "PROMPT"
+    assert cap["body"]["options"]["stop"] == ["<end_of_turn>"]
+    assert cap["body"]["options"]["temperature"] == 0.6
+
+
+def test_call_injects_system_and_flattens_tool(monkeypatch):
+    seen: dict = {}
+    monkeypatch.setattr(urllib.request, "urlopen", _urlopen_ok({}, {"response": "ok"}))
+    m = GgufModel(renderer=lambda d: seen.setdefault("dicts", d) or "P")
+    m([Message("user", "U"), Message("tool", "nmap ciktisi")])
+    roles = [d["role"] for d in seen["dicts"]]
+    assert roles[0] == "system"                          # persona basta
+    assert "ARAÇ ÇIKTISI:" in seen["dicts"][-1]["content"]  # tool -> user flatten
+
+
+def test_connection_refused_returns_error_string(monkeypatch):
+    monkeypatch.setattr(urllib.request, "urlopen",
+                        _urlopen_raises(urllib.error.URLError("refused")))
+    out = GgufModel(renderer=lambda d: "P")([Message("user", "U")])
+    assert out.startswith("HATA") and "Ollama" in out
+
+
+def test_timeout_returns_error_string(monkeypatch):
+    monkeypatch.setattr(urllib.request, "urlopen", _urlopen_raises(TimeoutError()))
+    out = GgufModel(renderer=lambda d: "P")([Message("user", "U")])
+    assert out.startswith("HATA") and "zaman" in out.lower()
+
+
+def test_model_not_found_returns_error_string(monkeypatch):
+    err = urllib.error.HTTPError("u", 404, "not found", {}, None)
+    monkeypatch.setattr(urllib.request, "urlopen", _urlopen_raises(err))
+    out = GgufModel(renderer=lambda d: "P")([Message("user", "U")])
+    assert "ollama create" in out
