@@ -51,6 +51,22 @@ def run_docker_demo(target: str = "octopus-target", scope: list[str] | None = No
     return _scan_demo(DockerExecutor(network=network), target, scope, f"-Pn -sV -p{port}", "docker demo bitti")
 
 
+def run_gguf_demo(scope: list[str] | None = None, model: str = "octopus-v7") -> str:
+    """GERCEK BEYIN: GgufModel (Ollama'da v0.7) dongüyü sürer, MockExecutor eller.
+    Ollama yoksa GgufModel net HATA stringi döner -> döngü çökmez, onu nihai cevap alir."""
+    from agent.backends.gguf_model import GgufModel
+    from agent.executor import MockExecutor
+    from agent.policy import LabPolicy
+    from agent.audit import AuditLog
+    scope = scope or ["10.10.10.0/24"]
+    registry = ToolRegistry(LabPolicy(scope=scope), MockExecutor(), AuditLog.default())
+    msgs = [Message("user", "10.10.10.5 yetkili lab hedefini tara")]
+    result = run_tool_loop(msgs, GgufModel(model=model), registry)
+    lines = [f"[{m.role}] {m.content}" for m in msgs]
+    lines.append(f"(adim={result.steps}, cagri={len(result.calls)}) (gguf demo bitti)")
+    return "\n".join(lines)
+
+
 def main() -> None:
     # Windows konsolu (cp1254) ó/Ç basamaz -> UTF-8.
     try:
@@ -61,10 +77,14 @@ def main() -> None:
     ap.add_argument("--scope", nargs="*", default=None, help="izinli IP/CIDR (mod varsayilanini ezer)")
     ap.add_argument("--real", action="store_true", help="RealExecutor: Kali WSL'de gercek nmap")
     ap.add_argument("--docker", action="store_true", help="DockerExecutor: lab docker aginda gercek nmap")
+    ap.add_argument("--gguf", action="store_true", help="GgufModel: Ollama'da gercek v0.7")
+    ap.add_argument("--model", default=None, help="Ollama model adi (varsayilan octopus-v7)")
     ap.add_argument("--target", default=None, help="hedef (mod varsayilanini ezer)")
     ap.add_argument("--port", type=int, default=None, help="taranacak port (mod varsayilani)")
     args = ap.parse_args()
-    if args.docker:
+    if args.gguf:
+        print(run_gguf_demo(args.scope, args.model or "octopus-v7"))
+    elif args.docker:
         print(run_docker_demo(args.target or "octopus-target", args.scope, port=args.port or 80))
     elif args.real:
         print(run_real_demo(args.target or "127.0.0.1", args.scope, port=args.port or 8000))
