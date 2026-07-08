@@ -1,0 +1,4 @@
+# f16 GGUF'tan niceleme (ollama create -q q4_K_M) icin. Build-free yol (convert_gguf_local.sh).
+# Backend prompt'u RAW modda kendisi uygular (template/system BURADA YOK) -> yalniz import + emniyet stop.
+FROM ./octopus-v7-f16.gguf
+PARAMETER stop "<end_of_turn>"

@@ -11,7 +11,7 @@ MERGED="/workspace/octopus-v7-merged"; OUT="/workspace/octopus-v7-gguf"
 TOKOUT="/workspace/octopus-v7-tokenizer"; mkdir -p "$OUT" "$TOKOUT"
 
 echo "===== [1/5] Merge env (pinli) + MERGE (llama.cpp deps'ten ONCE!) ====="
-pip install -q "transformers==4.49.0" "peft==0.14.0" "accelerate==1.4.0" "torch==2.4.1" 2>&1 | tail -1
+pip install -q "transformers==4.49.0" "peft==0.14.0" "accelerate==1.4.0" "torch==2.4.1" sentencepiece protobuf 2>&1 | tail -1
 python - <<PY
 import torch, shutil
 from transformers import AutoModelForCausalLM, AutoTokenizer
