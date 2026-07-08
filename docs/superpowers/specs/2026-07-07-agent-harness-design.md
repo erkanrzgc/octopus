@@ -1,105 +1,107 @@
-# Octópus Agent Harness — Tasarım (Spec)
+# Octópus Agent Harness — Design (Spec)
 
-- **Tarih:** 2026-07-07
-- **Durum:** Onaylandı (kullanıcı brainstorming'de bölüm bölüm onayladı)
-- **Amaç:** v0.7 modelinin ürettiği ```arac``` bloklarını parse edip araçları çalıştıran, sonucu modele
-  geri besleyen **agentic runtime**. Model = beyin (metin üretir); harness = eller (araçları koşturur).
+- **Date:** 2026-07-07
+- **Status:** Approved (the user approved it section by section during brainstorming)
+- **Goal:** an **agentic runtime** that parses the ```arac``` blocks produced by the v0.7 model, runs the
+  requested tools, and feeds the results back to the model. Model = the brain (produces text); harness = the
+  hands (runs the tools).
 
-## Bağlam
+## Context
 
-Octópus v0.7 (Turkish-Gemma-9b bf16 LoRA) 117-araç kataloğuyla tool-use öğrenmiş durumda. Model araç
-çağrısını şu formatta **metin olarak** üretir:
+Octópus v0.7 (Turkish-Gemma-9b bf16 LoRA) has learned tool use over a 117-tool catalog. The model produces a
+tool call **as text**, in this format:
 
 ```arac
 {"arac":"nmap","parametreler":{"hedef":"10.10.10.5","secenekler":"-sV"}}
 ```
 
-Ama repoda bu bloğu parse edip **gerçekten çalıştıran** bir runtime YOK. Bu spec o runtime'ı tanımlar.
-Referans (port/uyarlama, kopya değil): `Desktop\agentic-model\src\octopus\agent` (Hermes tool-loop deseni,
+But the repo has NO runtime that parses this block and **actually runs it**. This spec defines that runtime.
+Reference (port/adaptation, not a copy): `Desktop\agentic-model\src\octopus\agent` (Hermes tool-loop pattern,
 `ToolRegistry`, `LabPolicy`, `AuditLog`).
 
-## Kapsam (iki faz, kademeli)
+## Scope (two phases, incremental)
 
-- **Faz 1 (bu spec'in ana teslimi) — ÇALIŞAN İSKELET, Windows'ta bugün çalışır:** parser + döngü + katalog +
-  registry + **MockExecutor** (gerçekçi sahte çıktı) + mock/gerçek model backend + CLI + testler. Gerçek
-  binary çalıştırma YOK → sıfır güvenlik riski. Modelin ```arac``` bloğunu güvenilir üretip üretmediğini
-  uçtan uca doğrular.
-- **Faz 2 (sonra):** gerçek model backend (GGUF Q4, yerel RTX 5060 8GB) + **RealExecutor** (WSL2/Kali
-  subprocess) + policy sertleştirme. İskelet pluggable olduğu için sadece backend'ler değişir.
+- **Phase 1 (the main deliverable of this spec) — A WORKING SKELETON that runs on Windows today:** parser +
+  loop + catalog + registry + **MockExecutor** (realistic simulated output) + mock/real model backend + CLI +
+  tests. NO real binary execution → zero security risk. It verifies end-to-end whether the model reliably
+  produces the ```arac``` block.
+- **Phase 2 (later):** a real model backend (GGUF Q4, local RTX 5060 8GB) + **RealExecutor** (WSL2/Kali
+  subprocess) + policy hardening. Because the skeleton is pluggable, only the backends change.
 
-## Mimari
+## Architecture
 
-Küçük, tek-sorumluluklu modüller (yeni `agent/` paketi):
+Small, single-responsibility modules (a new `agent/` package):
 
 ```
 agent/
-  messages.py     Message(role, content) — sade veri tipi
-  catalog.py      117-araç KATALOG (TEK GERÇEK KAYNAK, eğitim verisinden türetilir)
-  toolcall.py     ```arac``` blok parse + araç-sonucu geri-besleme
-  registry.py     katalog → tool-spec + invoke(çağrı) → executor'a yönlendir
-  executor.py     Executor protokolü + MockExecutor (Faz 1)
-  policy.py       LabPolicy — kapsam allow-list, risk kapısı, dry-run
-  audit.py        AuditLog — her araç çağrısı jsonl'e
-  loop.py         run_tool_loop — model↔araç döngüsü
+  messages.py     Message(role, content) — a plain data type
+  catalog.py      117-tool CATALOG (SINGLE SOURCE OF TRUTH, derived from training data)
+  toolcall.py     ```arac``` block parsing + tool-result feedback
+  registry.py     catalog → tool-spec + invoke(call) → dispatch to the executor
+  executor.py     Executor protocol + MockExecutor (Phase 1)
+  policy.py       LabPolicy — scope allow-list, risk gate, dry-run
+  audit.py        AuditLog — every tool call to jsonl
+  loop.py         run_tool_loop — the model↔tool loop
   backends/
-    mock_model.py scripted/mock `üret` (test + demo)
-    (Faz 2) gguf_model.py
-  cli.py          `python -m agent.cli` — sohbet girişi
-tests/agent/      parser, katalog-bütünlük, döngü, policy, executor testleri
+    mock_model.py scripted/mock `generate` (test + demo)
+    (Phase 2) gguf_model.py
+  cli.py          `python -m agent.cli` — chat entry point
+tests/agent/      parser, catalog-integrity, loop, policy, executor tests
 ```
 
-### Bileşen sözleşmeleri
+### Component contracts
 
-- **catalog.py** — 117 girdi, her biri: `{isim, alan, risk(low/med/high), parametreler(anahtar listesi),
-  komut_sablonu}`. İsimler + parametre anahtarları **eğitim verisinden türetilir** (garantili model-eşleşmesi).
-  Kanıt: 117/117 araç `arac` bloğunda mevcut, 38 benzersiz parametre anahtarı, çoğu `secenekler` (ham bayrak).
-- **toolcall.py** — `parse_arac_calls(text) -> list[ToolCall]` (regex ```arac``` blok, bozuk JSON'ı atlar,
-  asla çökmez). Geri-besleme: `data/sft/normalize.py::flatten_tool_messages` **aynen yeniden kullanılır**
-  (araç sonucu → "ARAÇ ÇIKTISI:\n…" `user` turu; Gemma-2 tool rolü desteklemez).
-- **registry.py** — katalogtan tool-spec üretir (system-prompt için), `invoke(call)` çağrısını policy +
-  executor'a yönlendirir. Bilinmeyen araç → hata (modele geri döner, döngü ölmez).
-- **executor.py** — `Executor` protokolü: `run(tool, params) -> str`. `MockExecutor` alan-bazlı gerçekçi
-  çıktı üretir (nmap→port listesi, sqlmap→enjeksiyon bulgusu). Faz 2: `RealExecutor` subprocess+policy.
-- **policy.py** — `decide(tool, params) -> Decision(allowed, requires_approval, reason)`. Varsayılan lab-only;
-  risk `low` recon kapsam içinde geçer, `high` onay/dry-run ister. Kapsam dışı hedef → reddet.
-- **loop.py** — `run_tool_loop(messages, generate, registry, max_steps=10)`: model üret → `arac` var mı?
-  yoksa nihai cevap; varsa her çağrıyı invoke et, sonucu `tool` mesajı ekle, tekrarla. `max_steps` koruması.
-  Backend-bağımsız (`generate: list[Message] -> str`).
+- **catalog.py** — 117 entries, each: `{name, domain, risk(low/med/high), params(key list), command_template}`.
+  Names + parameter keys are **derived from the training data** (guaranteed model match). Evidence: 117/117
+  tools appear in `arac` blocks, 38 unique parameter keys, mostly `secenekler` (raw flags).
+- **toolcall.py** — `parse_arac_calls(text) -> list[ToolCall]` (regex over ```arac``` blocks, skips broken
+  JSON, never crashes). Feedback: `data/sft/normalize.py::flatten_tool_messages` is **reused verbatim**
+  (tool result → an "ARAÇ ÇIKTISI:\n…" `user` turn; the Gemma-2 chat template does not support the tool role).
+- **registry.py** — produces tool-specs from the catalog (for the system prompt) and dispatches `invoke(call)`
+  to policy + executor. Unknown tool → an error (returned to the model; the loop does not die).
+- **executor.py** — an `Executor` protocol: `run(tool, params) -> str`. `MockExecutor` produces domain-based
+  realistic output (nmap→port list, sqlmap→injection finding). Phase 2: `RealExecutor` (subprocess+policy).
+- **policy.py** — `decide(tool, params) -> Decision(allowed, requires_approval, reason)`. Default lab-only;
+  `low`-risk recon passes within scope, `high` requires approval/dry-run. Out-of-scope target → refuse.
+- **loop.py** — `run_tool_loop(messages, generate, registry, max_steps=10)`: generate → any `arac`? if not,
+  final answer; if yes, invoke each call, append the result as a `tool` message, repeat. `max_steps` guard.
+  Backend-agnostic (`generate: list[Message] -> str`).
 
-## Veri akışı (bir tur)
+## Data flow (one turn)
 
 ```
-USER "10.10.10.5 tara" → generate() → ASSISTANT (akıl + ```arac nmap```)
-  → parse_arac_calls → [nmap çağrısı]
-  → policy.decide (kapsam+risk) → izin
-  → executor.run("nmap", {...}) → çıktı (Faz1 mock / Faz2 gerçek)
-  → flatten ile "ARAÇ ÇIKTISI:\n…" TOOL mesajı → generate() → ASSISTANT (yorum / sıradaki araç)
-  → arac yoksa → nihai cevap, döngü biter
+USER "scan 10.10.10.5" → generate() → ASSISTANT (reasoning + ```arac nmap```)
+  → parse_arac_calls → [nmap call]
+  → policy.decide (scope+risk) → allow
+  → executor.run("nmap", {...}) → output (Phase 1 mock / Phase 2 real)
+  → flatten to an "ARAÇ ÇIKTISI:\n…" TOOL message → generate() → ASSISTANT (interpretation / next tool)
+  → no arac → final answer, the loop ends
 ```
 
-## Hata yönetimi
+## Error handling
 
-- Bozuk/eksik `arac` bloğu → parser atlar (döngü sürer).
-- Bilinmeyen araç / executor hatası → `ERROR: …` metni modele geri döner (asla exception ile çökme).
-- `max_steps` → sonsuz döngü koruması, son bir düz cevap alınır.
-- Kapsam-dışı/risk → policy reddi, sebep modele döner.
+- Broken/incomplete `arac` block → the parser skips it (the loop continues).
+- Unknown tool / executor error → an `ERROR: …` string is returned to the model (never crash on an exception).
+- `max_steps` → infinite-loop guard; a final plain answer is taken.
+- Out-of-scope/risk → policy refusal, reason returned to the model.
 
-## Test stratejisi (TDD, %80+)
+## Test strategy (TDD, 80%+)
 
-- **parser:** geçerli/bozuk/çoklu `arac` blokları, ret örnekleri.
-- **catalog-bütünlük:** 117 aracın hepsi var mı, isimler eğitim verisiyle eşleşiyor mu (kanonik test).
-- **loop:** scripted `generate` + `MockExecutor` ile tam tur (tek-araç, çok-adımlı zincir, nihai cevap).
-- **policy:** kapsam içi/dışı hedef, low/high risk, dry-run kararları.
-- **executor:** MockExecutor alan-bazlı çıktı biçimi.
+- **parser:** valid/broken/multiple `arac` blocks, refusal examples.
+- **catalog-integrity:** are all 117 tools present, do names match the training data (a canonical test).
+- **loop:** a full turn with a scripted `generate` + `MockExecutor` (single tool, multi-step chain, final answer).
+- **policy:** in/out-of-scope target, low/high risk, dry-run decisions.
+- **executor:** MockExecutor's domain-based output shape.
 
-## Kararlar (brainstorming'de onaylı)
+## Decisions (approved in brainstorming)
 
-1. Hedef: önce iskelet (mock), sonra gerçek çalıştırma (WSL2/Kali) üstüne takılır — **1 temel, 2 üstüne**.
-2. Registry = **veri-güdümlü tek katalog** (117 araç, eğitim verisinden türetilir). 117 elle-handler DEĞİL.
-3. Geri-besleme formatı eğitimle **birebir aynı** olmalı (`flatten_tool_messages` reuse) — en kritik doğruluk noktası.
-4. Backend soyutlaması: model (mock→GGUF) ve executor (mock→gerçek) ayrı ayrı takılabilir.
+1. Goal: skeleton first (mock), then real execution (WSL2/Kali) plugged on top — **1 as the base, 2 on top**.
+2. Registry = a **data-driven single catalog** (117 tools, derived from training data). NOT 117 hand-written handlers.
+3. The feedback format must be **identical** to training (`flatten_tool_messages` reuse) — the most critical
+   correctness point.
+4. Backend abstraction: model (mock→GGUF) and executor (mock→real) are independently pluggable.
 
-## İlgili
+## Related
 
-- `data/sft/tools/build_tools.py` (MASTER_TOOLS = kanonik 117 liste) · `data/sft/normalize.py` (flatten reuse)
-- `docs/v0.7-tools-catalog.md` · `Desktop\agentic-model\src\octopus\agent\*` (referans desen)
+- `data/sft/tools/build_tools.py` (MASTER_TOOLS = the canonical 117 list) · `data/sft/normalize.py` (flatten reuse)
+- `docs/v0.7-tools-catalog.md` · `Desktop\agentic-model\src\octopus\agent\*` (reference pattern)
