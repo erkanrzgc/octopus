@@ -17,7 +17,6 @@ checkpoints/
 checkpoints_web/
 checkpoints_sft/
 runs/
-models/
 rag/chroma/
 *.safetensors
 *.bin
@@ -60,3 +59,7 @@ lab/logs/
 
 # Kisisel oturum-logu (public repo disi)
 BURADAN-DEVAM.md
+
+# Yerel GGUF model artefaktlari (pod'da uretilir, yerelde indirilir; *.gguf zaten global ignore).
+# models/Modelfile + README.md izlenir; buyuk/tureyen artefaktlar ignore:
+models/octopus-v7-tokenizer/
