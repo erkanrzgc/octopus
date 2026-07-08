@@ -1,36 +1,38 @@
-# Octópus — Skill & Subagent Rehberi
+# Octópus — Skills & Subagents Guide
 
-> "Skill olayını subagent olayını netleştirelim" — bu doküman ikisini açıklar ve Octópus fine-tune
-> workflow'una eşler. Proje skill'leri: `.claude/skills/`. Global agent'lar: `~/.claude/agents/` (ECC paketi).
+> This document clarifies skills vs subagents and maps them to the Octópus fine-tune workflow.
+> Project skills: `.claude/skills/`. Global agents: `~/.claude/agents/` (ECC package).
 
-## Fark (özet)
-- **🧩 Skill = TARİF / bilgi.** Bir `.md` reçetesi; tetiklenince **mevcut oturumun context'ine** yüklenir,
-  yeni biri doğmaz. "Şu işi HER ZAMAN şöyle yap." Ucuz, deterministik, senin konvansiyonun. → `.claude/skills/`.
-- **🤖 Subagent = İŞÇİ / izolasyon.** Temiz context'le doğan taze bir Claude; dar görev alır, tool koşar,
-  **sadece özet** döner. Değer: context izolasyonu + paralellik + uzmanlık. Maliyet: soğuk başlar (pahalı).
-- **Kural:** Skill = *nasıl* (in-context, ucuz). Subagent = *git yap & rapor et* (izole, pahalı). Bir skill,
-  "şu subagent'ı çağır" diyebilir → birlikte çalışırlar.
+## The difference (summary)
+- **🧩 Skill = RECIPE / knowledge.** A `.md` recipe; when triggered it loads into the **current session's
+  context** — no new agent is spawned. "Always do X this way." Cheap, deterministic, your convention.
+  → `.claude/skills/`.
+- **🤖 Subagent = WORKER / isolation.** A fresh Claude spawned with a clean context; takes a narrow task, runs
+  tools, and returns **only a summary.** Value: context isolation + parallelism + specialization. Cost: cold
+  start (expensive).
+- **Rule:** Skill = *how* (in-context, cheap). Subagent = *go do it & report* (isolated, expensive). A skill
+  may say "call this subagent" → they work together.
 
-## Octópus proje skill'leri (kurulu)
-| Skill | Ne zaman | Ne yapar |
+## Octópus project skills (installed)
+| Skill | When | What it does |
 |---|---|---|
-| `octopus-data` | SFT veri lazım | Türkçe+siber kaynakları `messages`'a normalize + persona + dedup + split |
-| `octopus-finetune` | modeli eğit | bf16 LoRA (Turkish-Gemma-9b, transformers+peft+TRL) veri→train→eval→merge→GGUF + para-checkpoint |
-| `octopus-eval` | eğitim bitti | ppl + safety/balance + brittleness red-team |
+| `octopus-data` | need SFT data | normalize Turkish+cyber sources into `messages` + persona + dedup + split |
+| `octopus-finetune` | train the model | bf16 LoRA (Turkish-Gemma-9b, transformers+peft+TRL): data→train→eval→merge→GGUF + money checkpoint |
+| `octopus-eval` | training done | perplexity + safety/balance + brittleness red-team |
 
-## Subagent haritası (mevcut global agent'ları kullan — yeni icat etme)
-| Durum | Agent | Neden |
+## Subagent map (use existing global agents — don't invent new ones)
+| Situation | Agent | Why |
 |---|---|---|
-| Eğitim çöktü (CUDA/tensor/OOM/DataLoader) | `pytorch-build-resolver` | izole context'te düzeltir, ana kafayı kirletmez |
-| Python kod kalitesi | `python-reviewer` | pipeline kodu review |
-| Güvenlik / persona guardrail şüphesi | `security-reviewer` | red+blue guardrail, secret sızıntısı |
-| Geniş keşif / kod arama / araştırma | `Explore` veya `general-purpose` | fan-out arama context izolasyonu için |
-| Build/bağımlılık hatası (torch/unsloth) | `build-error-resolver` | hızlı yeşile getir |
+| Training crash (CUDA/tensor/OOM/DataLoader) | `pytorch-build-resolver` | fixes it in an isolated context, keeps the main context clean |
+| Python code quality | `python-reviewer` | reviews pipeline code |
+| Security / persona guardrail concern | `security-reviewer` | red+blue guardrail, secret leaks |
+| Broad exploration / code search / research | `Explore` or `general-purpose` | fan-out search with context isolation |
+| Build/dependency error (torch/transformers) | `build-error-resolver` | get back to green quickly |
 
-> **Paralellik:** bağımsız işleri aynı mesajda paralel dispatch et (ör. veri hazırlanırken kod review).
-> **Özel agent SADECE gerçek boşlukta** yazılır (ör. Octópus'a özgü otomatik değerlendirici) — şu an YOK, gerekmiyor.
+> **Parallelism:** dispatch independent jobs in parallel in one message (e.g. code review while data is prepared).
+> **Write a custom agent ONLY for a real gap** (e.g. an Octópus-specific automated evaluator) — none needed right now.
 
-## Ne zaman hangisi? (pratik)
-- Tekrarlanan, konvansiyon-taşıyan iş (eğitim reçetesi, veri şekli) → **skill**.
-- Bağlamı kirletecek ağır/izole/paralel iş (hata ayıklama, geniş arama) → **subagent**.
-- İkisi birlikte: `octopus-finetune` skill'i eğitim çökmesinde `pytorch-build-resolver` subagent'ını önerir.
+## Which one, when? (practical)
+- Repeated, convention-carrying work (training recipe, data shape) → **skill**.
+- Heavy/isolated/parallel work that would pollute context (debugging, broad search) → **subagent**.
+- Both together: the `octopus-finetune` skill recommends the `pytorch-build-resolver` subagent on a training crash.

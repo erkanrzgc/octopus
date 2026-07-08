@@ -1,60 +1,64 @@
-# ADR 0003 — Taban Qwen3-8B → Turkish-Gemma-9b, yöntem QLoRA → bf16 LoRA
+# ADR 0003 — Base Qwen3-8B → Turkish-Gemma-9b, method QLoRA → bf16 LoRA
 
-- **Tarih:** 2026-07-05
-- **Durum:** Kabul edildi ve **uygulandı** (v0.6 + v0.7 bu yolla eğitildi)
-- **Yerini aldığı:** [ADR 0002](0002-pivot-to-finetuning.md)'nin taban+yöntem seçimi — **superseded**
-  (ADR 0002'nin "fine-tuning'e dönüş" kararı GEÇERLİ; yalnız taban modeli ve kuantizasyon yöntemi değişti)
-- **Dizin:** `C:\Users\erkanrzgc\Desktop\Octopus` (ASCII)
+- **Date:** 2026-07-05
+- **Status:** Accepted and **implemented** (v0.6 + v0.7 were trained this way)
+- **Supersedes:** the base+method choice of [ADR 0002](0002-pivot-to-finetuning.md) — **superseded**
+  (ADR 0002's "pivot to fine-tuning" decision is STILL VALID; only the base model and quantization method changed)
+- **Directory:** `C:\Users\erkanrzgc\Desktop\Octopus` (ASCII)
 
-## Bağlam
+## Context
 
-ADR 0002 tabanı **Qwen3-8B** + **QLoRA (Unsloth, 4-bit NF4)** seçmişti. Bu yolla v0.1 ve v0.2 gerçekten
-eğitildi (RunPod, loss ~0.80). Ama iki kalıcı sorun çıktı:
+ADR 0002 chose the base **Qwen3-8B** + **QLoRA (Unsloth, 4-bit NF4)**. v0.1 and v0.2 were actually trained
+this way (RunPod, loss ~0.80). But two persistent problems emerged:
 
-1. **Türkçe akıcılık yetersiz + persona pürüzleri.** Qwen3-8B çok-dilli ama Türkçe-native değil → üretimde
-   "Octópüs"/"Sevimsel" gibi yazım/kelime pürüzleri, kimlik tekrar-döngüsü, `<think>` token sızıntısı.
-   "Namık Kemal gibi Türkçe" hedefi (dil #1 önceliği) tutmadı.
-2. **Dil tabanda olmalı kuralı** (ADR 0002) mantıken Türkçe-**native** bir taban gerektiriyordu.
+1. **Insufficient Turkish fluency + persona rough edges.** Qwen3-8B is multilingual but not Turkish-native →
+   generation showed spelling/word rough edges like "Octópüs"/"Sevimsel", identity repeat-loops, and `<think>`
+   token leakage. The "Turkish like Namık Kemal" goal (the #1 language priority) did not hold.
+2. **The "language in the base" rule** (ADR 0002) logically required a Turkish-**native** base.
 
-Türkçe-uzman taban arayışı → **`ytu-ce-cosmos/Turkish-Gemma-9b-v0.1`** (Gemma-2 mimarisi, Türkçe
-continual-pretrain + SFT + DPO + merge). Ama bunu QLoRA ile eğitince üretim **çok-dilli çöp** çıktı.
+The search for a Turkish-expert base → **`ytu-ce-cosmos/Turkish-Gemma-9b-v0.1`** (Gemma-2 architecture,
+Turkish continual-pretrain + SFT + DPO + merge). But training it with QLoRA produced **multilingual garbage.**
 
-### Kök sebep (kanıtlanmış, 2026-07-05)
+### Root cause (proven, 2026-07-05)
 
-Pod'da düz `transformers` ile `scratchpad/bf16_test.py`: Turkish-Gemma-9b **`bf16`'da KUSURSUZ Türkçe**
-üretiyor (akıcı persona + hatasız SQLi anlatımı). Çöp **tamamen** Unsloth'un **4-bit NF4** kuantizasyonundan
-geliyordu. **Neden:** Turkish-Gemma continual-pt + SFT + DPO + **merge** geçmişi taşır; NF4 bu merge'li
-ağırlıkları bozar. (Qwen temiz kuantalanıyordu — bu yüzden v0.1/v0.2 çalıştı; bug taban-özel, Unsloth-genel değil.)
+On the pod, with plain `transformers` (`scratchpad/bf16_test.py`): Turkish-Gemma-9b produces **flawless Turkish
+in `bf16`** (fluent persona + correct SQLi explanation). The garbage came **entirely** from Unsloth's **4-bit
+NF4** quantization. **Why:** Turkish-Gemma carries a continual-pt + SFT + DPO + **merge** history; NF4 corrupts
+those merged weights. (Qwen quantized cleanly — which is why v0.1/v0.2 worked; the bug is base-specific, not
+Unsloth-general.)
 
-## Karar
+## Decision
 
-1. **Taban = `ytu-ce-cosmos/Turkish-Gemma-9b-v0.1`** (Türkçe-native, Gemma-2). Qwen3-8B bırakıldı.
-2. **Yöntem = bf16 LoRA** (kuantizasyon YOK). Düz `transformers` (`torch_dtype=bfloat16`, `load_in_4bit=False`)
-   + `peft` `LoraConfig` + TRL `SFTTrainer`. **Unsloth kullanılmıyor** (4-bit'i bu tabanı bozuyor).
-3. **Donanım = RunPod RTX 4090 24GB.** Turkish-Gemma bf16 ≈18GB + grad-checkpointing + seq 1024 + batch1/
-   accum8 ≈ 21-23GB → sığar (sınırda). Yerel RTX 5060 8GB eğitim İÇİN yetmez (yalnız GGUF inference).
-4. **Hiperparametre** (cyberm4fia'dan miras, değişmedi): r=32, α=32, target 7 modül (q/k/v/o/gate/up/down),
-   seq 1024, lr 2e-4, ~900 adım/~3 epoch. Sürüm pini (torch 2.4 uyumu): transformers 4.49 / trl 0.15.2 /
-   peft 0.14 / accelerate 1.4.
+1. **Base = `ytu-ce-cosmos/Turkish-Gemma-9b-v0.1`** (Turkish-native, Gemma-2). Qwen3-8B dropped.
+2. **Method = bf16 LoRA** (NO quantization). Plain `transformers` (`torch_dtype=bfloat16`, `load_in_4bit=False`)
+   + `peft` `LoraConfig` + TRL `SFTTrainer`. **Unsloth is not used** (its 4-bit corrupts this base).
+3. **Hardware = RunPod RTX 4090 24GB.** Turkish-Gemma bf16 ≈18GB + gradient checkpointing + seq 1024 +
+   batch1/accum8 ≈ 21-23GB → fits (at the edge). A local RTX 5060 8GB is not enough for training (GGUF
+   inference only).
+4. **Hyperparameters** (inherited from cyberm4fia, unchanged): r=32, α=32, 7 target modules
+   (q/k/v/o/gate/up/down), seq 1024, lr 2e-4, ~900 steps/~3 epochs. Version pins (torch 2.4 compatibility):
+   transformers 4.49 / trl 0.15.2 / peft 0.14 / accelerate 1.4.
 
-## Sonuçlar
+## Results
 
-- **v0.6** (Türkçe-only, 918 distill + seed): son loss **0.22**, token doğruluğu %97. Akıcı/edebî Türkçe,
-  Qwen pürüzleri YOK. HF `erkanrzgcc/octopus-gemma-v0.6`.
-- **v0.7** (+siber bilgi 1029 Q&A + 117-araç tool-use): son loss **0.048**, %98.7. HF `erkanrzgcc/octopus-gemma-v0.7`.
-- **Script:** `train/sft_bf16.py` (kanonik). Eski Unsloth/Qwen yolu `train/sft_smoke.py`'de arşiv olarak duruyor.
+- **v0.6** (Turkish-only, 918 distilled + seed): final loss **0.22**, token accuracy 97%. Fluent/literary
+  Turkish, NO Qwen rough edges. HF `erkanrzgcc/octopus-gemma-v0.6`.
+- **v0.7** (+cyber knowledge 1,029 Q&A + 117-tool use): final loss **0.048**, 98.7%. HF `erkanrzgcc/octopus-gemma-v0.7`.
+- **Script:** `train/sft_bf16.py` (canonical). The old Unsloth/Qwen path is kept in `archive/train/sft_smoke.py`.
 
-## Bilinen tuzaklar (gelecek turlar)
+## Known traps (future runs)
 
-- **`--max-train 0` (tam ~2279 veri) → deterministik NaN** (grad nan, step 5). `--max-train 2000` (alt küme)
-  → temiz. Veri-bağımsız (v0.6 reçetesi bile 0'da patladı). Şüpheli: dataset-size/collator sayısal etkileşim.
-  Workaround = max-train 2000. Kök-sebep araştırması v0.7.1'e ertelendi. Detay: `docs/v0.7-loop-queue.md`.
-- **Gemma-2 chat template `tool` rolünü desteklemez** → `data/sft/normalize.py::flatten_tool_messages` `tool`→
-  `user` ("ARAÇ ÇIKTISI:" önekiyle) çevirir, user/model alternasyonu korunur.
-- **Çift-BOS:** Gemma template literal `<bos>` basar, TRL yeniden ekler → `_to_text`'te baştaki bos sıyrılır.
+- **`--max-train 0` (full ~2279 examples) → deterministic NaN** (grad nan, step 5). `--max-train 2000` (a
+  subset) → clean. Data-independent (even the v0.6 recipe blew up at 0). Suspected: a dataset-size/collator
+  numerical interaction. Workaround = max-train 2000. Root-cause investigation deferred to v0.7.1. Details:
+  `docs/v0.7-loop-queue.md`.
+- **The Gemma-2 chat template does not support the `tool` role** → `data/sft/normalize.py::flatten_tool_messages`
+  converts `tool` → `user` (with an "ARAÇ ÇIKTISI:" prefix), preserving user/model alternation.
+- **Double BOS:** the Gemma template emits a literal `<bos>`, and TRL adds another → `_to_text` strips the
+  leading BOS.
 
-## İlgili
+## Related
 
-- [ADR 0002](0002-pivot-to-finetuning.md) — fine-tuning'e dönüş (geçerli); taban/yöntem seçimi bu ADR'ce güncellendi.
+- [ADR 0002](0002-pivot-to-finetuning.md) — pivot to fine-tuning (valid); its base/method choice was updated by this ADR.
 - [ADR 0001](0001-from-scratch-turkish-first.md) — from-scratch (superseded by 0002).
 - `train/sft_bf16.py` · `docs/v0.7-loop-queue.md` · `README.md`.
