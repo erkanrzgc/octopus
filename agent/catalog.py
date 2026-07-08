@@ -27,3 +27,12 @@ CATALOG: dict[str, ToolSpec] = {
 
 def get_spec(name: str) -> ToolSpec | None:
     return CATALOG.get(name)
+
+
+def target_value(params: dict) -> str | None:
+    """Cagri parametrelerinden AG hedefini (scope-degerlendirilebilir) cikar; yoksa None.
+    TEK KAYNAK: policy (scope kilidi) + executor'lar (gercek komut) buradan okur."""
+    for k in TARGET_KEYS:
+        if params.get(k):
+            return str(params[k])
+    return None
