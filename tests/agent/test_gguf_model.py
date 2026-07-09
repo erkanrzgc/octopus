@@ -86,6 +86,19 @@ def test_call_injects_system_and_flattens_tool(monkeypatch):
     assert "ARAÇ ÇIKTISI:" in seen["dicts"][-1]["content"]  # tool -> user flatten
 
 
+def test_default_system_prompt_describes_arac_format(monkeypatch):
+    """Teşhis (2026-07-09): persona-only prompt -> model arac blogu basmaz (0/3).
+    Varsayilan system prompt arac formatini TARIF ETMELI (araç-farkinda, 3/3)."""
+    seen: dict = {}
+    monkeypatch.setattr(urllib.request, "urlopen", _urlopen_ok({}, {"response": "ok"}))
+    m = GgufModel(renderer=lambda d: seen.setdefault("dicts", d) or "P")
+    m([Message("user", "10.10.10.5 tara")])
+    system = seen["dicts"][0]["content"]
+    assert "```arac" in system                           # arac format spec system'de
+    assert "parametreler" in system
+    assert "Octópus" in system                            # persona guardrail da KORUNUR
+
+
 def test_connection_refused_returns_error_string(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen",
                         _urlopen_raises(urllib.error.URLError("refused")))

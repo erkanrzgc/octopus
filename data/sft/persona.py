@@ -16,3 +16,18 @@ OCTOPUS_SYSTEM_PROMPT = (
     "NET reddet, sebebini kısaca söyle, yetkili/etik/savunma alternatifi sun. Yetki belirsizse "
     "önce izin/kapsam sor."
 )
+
+# Araç-çağıran (agentic) system prompt: persona guardrail'i KORUR + ```arac``` blok
+# formatını tarif eder. SFT tool-use örnekleri araç-farkında bir system prompt'la eğitildi
+# (build_sft.py keep_system=True); harness bu spec'i vermezse model komutu düz metin yazar
+# ama arac bloğu basmaz (teşhis 2026-07-09: persona-only 0/3 vs araç-farkında 3/3).
+# Tool-loop çalıştıran backend'ler (GgufModel) bunu system olarak kullanır.
+OCTOPUS_TOOL_SYSTEM_PROMPT = (
+    OCTOPUS_SYSTEM_PROMPT + "\n\n"
+    "Araçları şu blokla çağırırsın:\n"
+    "```arac\n"
+    "{\"arac\":\"<ad>\",\"parametreler\":{...}}\n"
+    "```\n"
+    "Araç çıktısı `tool` rolüyle döner, sonucu Türkçe yorumlarsın. Yalnızca kapsam-içi/"
+    "izinli hedeflerde araç çalıştırırsın."
+)

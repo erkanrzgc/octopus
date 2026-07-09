@@ -24,3 +24,19 @@ def test_main_routes_gguf(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "GGUF_DEMO_OUT" in out
     assert called["args"][1] == "octopus-v7"
+
+
+def test_main_routes_gguf_docker_combo(monkeypatch, capsys):
+    """--gguf --docker birlikte -> gercek beyin + gercek docker eli uctan uca."""
+    called: dict = {}
+
+    def _fake(scope, model="octopus-v7", target="octopus-target"):
+        called["args"] = (scope, model, target)
+        return "GGUF_DOCKER_OUT"
+
+    monkeypatch.setattr(cli, "run_gguf_docker_demo", _fake)
+    monkeypatch.setattr(sys, "argv", ["prog", "--gguf", "--docker"])
+    cli.main()
+    out = capsys.readouterr().out
+    assert "GGUF_DOCKER_OUT" in out
+    assert called["args"][1] == "octopus-v7"

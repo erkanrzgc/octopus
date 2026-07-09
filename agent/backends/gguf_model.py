@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from agent.messages import Message
 from agent.toolcall import render_for_model
 from data.sft.normalize import ensure_system
-from data.sft.persona import OCTOPUS_SYSTEM_PROMPT
+from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
 
 _EOT = "<end_of_turn>"
 
@@ -44,7 +44,7 @@ class GgufModel:
     model: str = "octopus-v7"
     host: str = "http://localhost:11434"
     tokenizer_dir: str = "models/octopus-v7-tokenizer"
-    system_prompt: str = OCTOPUS_SYSTEM_PROMPT
+    system_prompt: str = OCTOPUS_TOOL_SYSTEM_PROMPT  # araç-farkında: model ```arac``` bloğu basar
     temperature: float = 0.6
     top_p: float = 0.95
     top_k: int = 20

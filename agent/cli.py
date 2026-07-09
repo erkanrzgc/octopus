@@ -51,20 +51,54 @@ def run_docker_demo(target: str = "octopus-target", scope: list[str] | None = No
     return _scan_demo(DockerExecutor(network=network), target, scope, f"-Pn -sV -p{port}", "docker demo bitti")
 
 
-def run_gguf_demo(scope: list[str] | None = None, model: str = "octopus-v7") -> str:
-    """GERCEK BEYIN: GgufModel (Ollama'da v0.7) dongüyü sürer, MockExecutor eller.
+def run_gguf_demo(scope: list[str] | None = None, model: str = "octopus-v7",
+                  executor=None, target: str = "10.10.10.5", label: str = "gguf demo bitti") -> str:
+    """GERCEK BEYIN: GgufModel (Ollama'da v0.7) dongüyü sürer. executor=None -> MockExecutor eller.
+    executor verilirse (ör. DockerExecutor) gercek beyin + gercek eller uctan-uca calisir.
     Ollama yoksa GgufModel net HATA stringi döner -> döngü çökmez, onu nihai cevap alir."""
     from agent.backends.gguf_model import GgufModel
-    from agent.executor import MockExecutor
     from agent.policy import LabPolicy
     from agent.audit import AuditLog
+    if executor is None:
+        from agent.executor import MockExecutor
+        executor = MockExecutor()
     scope = scope or ["10.10.10.0/24"]
-    registry = ToolRegistry(LabPolicy(scope=scope), MockExecutor(), AuditLog.default())
-    msgs = [Message("user", "10.10.10.5 yetkili lab hedefini tara")]
+    registry = ToolRegistry(LabPolicy(scope=scope), executor, AuditLog.default())
+    msgs = [Message("user", f"{target} yetkili lab hedefini tara")]
     result = run_tool_loop(msgs, GgufModel(model=model), registry)
     lines = [f"[{m.role}] {m.content}" for m in msgs]
-    lines.append(f"(adim={result.steps}, cagri={len(result.calls)}) (gguf demo bitti)")
+    lines.append(f"(adim={result.steps}, cagri={len(result.calls)}) ({label})")
     return "\n".join(lines)
+
+
+def _docker_container_ip(container: str, distro: str = "kali-linux") -> str | None:
+    """Lab container'inin guncel IP'sini docker inspect ile al (None = bulunamadi).
+    NEDEN IP: Docker embedded DNS (isimle cozme) WSL'de flaky olabilir; model zaten
+    prompt'taki ACIK IP'yi arac blogunda birebir onurlandirir (hostname'i ise kacirir)."""
+    import re
+    import subprocess
+    try:
+        out = subprocess.run(
+            ["wsl.exe", "-d", distro, "--", "bash", "-c",
+             f"docker inspect {container} --format '{{{{json .NetworkSettings.Networks}}}}'"],
+            capture_output=True, text=True, timeout=30).stdout
+    except (subprocess.SubprocessError, FileNotFoundError):
+        return None
+    m = re.search(r'"IPAddress":"([0-9.]+)"', out)
+    return m.group(1) if m else None
+
+
+def run_gguf_docker_demo(scope: list[str] | None = None, model: str = "octopus-v7",
+                         target: str = "octopus-target", network: str = "octopus-lab") -> str:
+    """UCTAN UCA (Model B): GERCEK v0.7 beyni + GERCEK docker-lab eli (container nmap).
+    Model arac blogu uretir -> policy -> DockerExecutor lab aginda gercek nmap -> hedef.
+    Hedefi IP'ye cevir (DNS-siz): model acik IP'yi onurlandirir, container adini kacirir."""
+    from agent.backends.docker_executor import DockerExecutor
+    ip = _docker_container_ip(target)
+    real_target = ip or target                      # IP alinamazsa isme dus (DNS calisiyorsa olur)
+    scope = scope or [real_target, "172.16.0.0/12", "172.30.0.0/24"]
+    return run_gguf_demo(scope, model, executor=DockerExecutor(network=network),
+                         target=real_target, label="gguf+docker uctan uca bitti")
 
 
 def main() -> None:
@@ -82,7 +116,10 @@ def main() -> None:
     ap.add_argument("--target", default=None, help="hedef (mod varsayilanini ezer)")
     ap.add_argument("--port", type=int, default=None, help="taranacak port (mod varsayilani)")
     args = ap.parse_args()
-    if args.gguf:
+    if args.gguf and args.docker:
+        print(run_gguf_docker_demo(args.scope, args.model or "octopus-v7",
+                                   args.target or "octopus-target"))
+    elif args.gguf:
         print(run_gguf_demo(args.scope, args.model or "octopus-v7"))
     elif args.docker:
         print(run_docker_demo(args.target or "octopus-target", args.scope, port=args.port or 80))
