@@ -1,6 +1,8 @@
 <div align="center">
 
-# 🐙 Octópus
+<img src="assets/octopus.png" alt="Octópus logo" width="180" />
+
+# Octópus
 
 ### A Turkish-first large language model for cybersecurity and server administration
 ##### _Red + blue + network + Linux — with an agentic tool-use runtime. Authorized use only._
@@ -16,7 +18,7 @@
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.4-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)](#)
 [![Transformers](https://img.shields.io/badge/🤗%20Transformers-4.49-FFD21E?style=flat-square)](#)
 [![PEFT](https://img.shields.io/badge/PEFT-LoRA%20bf16-00A98F?style=flat-square)](#)
-[![Tests](https://img.shields.io/badge/tests-39%20passing-3DA639?style=flat-square)](#)
+[![Tests](https://img.shields.io/badge/tests-63%20passing-3DA639?style=flat-square)](#)
 [![License](https://img.shields.io/badge/code-MIT-green?style=flat-square)](#-license)
 [![Use](https://img.shields.io/badge/use-authorized%2Flab--only-critical?style=flat-square)](#-responsible-use)
 
@@ -128,7 +130,8 @@ User → model emits ```arac {"arac":"nmap","parametreler":{...}} ``` → harnes
      → result fed back as a tool message → model interprets and continues.
 ```
 
-Executors are pluggable behind one interface:
+The model runs through a **GGUF (Q4) backend on Ollama** — the same chat template used in training — so the
+real v0.7 weights drive the loop. Executors are pluggable behind one interface:
 
 - **MockExecutor** — realistic simulated output; runs anywhere, zero risk (default).
 - **RealExecutor** — runs real tools inside Kali (WSL2), `shell=False` argv, timeout.
@@ -138,8 +141,10 @@ Every call passes a **fail-closed** authorization gate (lab-only scope, per-tool
 to an audit log. Try it:
 
 ```bash
-uv run python -m agent.cli            # mock end-to-end demo
-uv run python -m agent.cli --real     # real nmap via Kali WSL (requires WSL2 + Kali)
+uv run python -m agent.cli                 # mock end-to-end demo (runs anywhere)
+uv run python -m agent.cli --gguf          # real Octópus v0.7 via Ollama (mock hands)
+uv run python -m agent.cli --real          # real nmap via Kali WSL (requires WSL2 + Kali)
+uv run python -m agent.cli --gguf --docker # real model + real tool in an isolated lab
 ```
 
 ---
@@ -148,9 +153,9 @@ uv run python -m agent.cli --real     # real nmap via Kali WSL (requires WSL2 + 
 
 - [x] **v0.6** — Turkish-Gemma bf16 LoRA · fluent Turkish + persona + authorization calibration
 - [x] **v0.7** — cybersecurity knowledge depth + agentic tool use (117-tool catalog)
-- [x] **Agent harness** — tool-call parser, policy gate, mock/real/docker executors (39 tests)
-- [ ] **v0.7.1** — strengthen the structured `arac` block · full-dataset training
-- [ ] **GGUF Q4** — run locally on 8 GB (offline-first)
+- [x] **Agent harness** — tool-call parser, policy gate, mock/real/docker executors (63 tests)
+- [x] **GGUF Q4 + real-model backend** — v0.7 weights drive the harness locally via Ollama
+- [ ] **v0.7.1** — strengthen the structured `arac` block · target diversity · full-dataset training
 - [ ] **RAG + Lab Mode** — knowledge base retrieval + isolated lab integration
 
 ---
