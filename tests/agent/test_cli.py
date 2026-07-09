@@ -26,6 +26,22 @@ def test_main_routes_gguf(monkeypatch, capsys):
     assert called["args"][1] == "octopus-v7"
 
 
+def test_docker_container_ip_rejects_injection(monkeypatch):
+    """Enjeksiyon kapisi: gecersiz/kotucul container adi hic komut kurmadan None doner."""
+    import subprocess
+    called: dict = {}
+
+    def _boom(*a, **k):
+        called["ran"] = True
+        raise AssertionError("subprocess kotucul adla CAGRILMAMALI")
+
+    monkeypatch.setattr(subprocess, "run", _boom)
+    assert cli._docker_container_ip("octopus-target; rm -rf /") is None
+    assert cli._docker_container_ip("$(whoami)") is None
+    assert cli._docker_container_ip("a b") is None
+    assert "ran" not in called                            # subprocess'e hic gidilmedi
+
+
 def test_main_routes_gguf_docker_combo(monkeypatch, capsys):
     """--gguf --docker birlikte -> gercek beyin + gercek docker eli uctan uca."""
     called: dict = {}

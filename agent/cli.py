@@ -5,11 +5,16 @@
 Faz 2'de ScriptedModel yerine gercek GGUF modeli takilir, ayni dongu."""
 from __future__ import annotations
 import argparse
+import re
 import sys
 from agent.backends.mock_model import ScriptedModel
 from agent.loop import run_tool_loop
 from agent.messages import Message
 from agent.registry import ToolRegistry
+
+# Docker container-adi grameri: harf/rakam ile baslar, ardindan [A-Za-z0-9_.-]. Enjeksiyon
+# kapisi — _docker_container_ip'te WSL komutuna yalniz bu deseni gecen ad girer.
+_CONTAINER_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 
 
 def _scan_demo(executor, target: str, scope: list[str], secenekler: str, label: str) -> str:
@@ -74,13 +79,16 @@ def run_gguf_demo(scope: list[str] | None = None, model: str = "octopus-v7",
 def _docker_container_ip(container: str, distro: str = "kali-linux") -> str | None:
     """Lab container'inin guncel IP'sini docker inspect ile al (None = bulunamadi).
     NEDEN IP: Docker embedded DNS (isimle cozme) WSL'de flaky olabilir; model zaten
-    prompt'taki ACIK IP'yi arac blogunda birebir onurlandirir (hostname'i ise kacirir)."""
-    import re
+    prompt'taki ACIK IP'yi arac blogunda birebir onurlandirir (hostname'i ise kacirir).
+    GUVENLIK: shell YOK — argv listesi (wsl.exe -> docker inspect ...) + container adi
+    allowlist ile dogrulanir (enjeksiyon kapali)."""
     import subprocess
+    if not _CONTAINER_NAME_RE.match(container):     # gecersiz/kotucul ad -> hic komut kurma
+        return None
     try:
         out = subprocess.run(
-            ["wsl.exe", "-d", distro, "--", "bash", "-c",
-             f"docker inspect {container} --format '{{{{json .NetworkSettings.Networks}}}}'"],
+            ["wsl.exe", "-d", distro, "--", "docker", "inspect", container,
+             "--format", "{{json .NetworkSettings.Networks}}"],
             capture_output=True, text=True, timeout=30).stdout
     except (subprocess.SubprocessError, FileNotFoundError):
         return None
