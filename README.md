@@ -4,14 +4,14 @@
 
 # Octópus
 
-### A Turkish-first large language model for cybersecurity and server administration
-##### _Red + blue + network + Linux — with an agentic tool-use runtime. Authorized use only._
+### An agentic large language model for cybersecurity and server administration
+##### _Red + blue + network + Linux — real tool execution behind an authorization gate._
 
 <br/>
 
 [![Version](https://img.shields.io/badge/version-v0.7-orange?style=for-the-badge)](https://github.com/erkanrzgc/octopus)
 [![Base Model](https://img.shields.io/badge/base-Turkish--Gemma--9B-4285F4?style=for-the-badge&logo=google)](https://huggingface.co/ytu-ce-cosmos/Turkish-Gemma-9b-v0.1)
-[![Language](https://img.shields.io/badge/language-Turkish--first-E30A17?style=for-the-badge)](#)
+[![Runtime](https://img.shields.io/badge/runtime-agentic%20tool--use-8B5CF6?style=for-the-badge)](#-agent-harness)
 [![Domain](https://img.shields.io/badge/domain-cybersecurity-000000?style=for-the-badge)](#)
 
 [![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square&logo=python&logoColor=white)](#)
@@ -28,14 +28,14 @@
 
 ## 📖 About
 
-**Octópus** is a Turkish-first language model fine-tuned for cybersecurity and server administration on
-top of a strong Turkish-native base model (**`ytu-ce-cosmos/Turkish-Gemma-9b-v0.1`**). It introduces itself
-as **“Ben Octópus”** (the dotted `ó` lives only in the brand and the model's speech; file paths stay plain
+**Octópus** is an agentic language model fine-tuned for cybersecurity and server administration on top of a
+strong Turkish-native base model (**`ytu-ce-cosmos/Turkish-Gemma-9b-v0.1`**). It introduces itself as
+**“Ben Octópus”** (the dotted `ó` lives only in the brand and the model's speech; file paths stay plain
 ASCII `octopus`).
 
-Unlike English-centric security assistants, Octópus aims to be a fluent, literary **Turkish** speaker with
-depth across **red team** (pentesting, recon, exploitation), **blue team** (detection, incident response,
-hardening), and **network + Linux server administration** — and it is **authorization-aware** by design.
+Octópus is built to be a fluent, literary **Turkish** speaker with depth across **red team** (pentesting,
+recon, exploitation), **blue team** (detection, incident response, hardening), and **network + Linux server
+administration** — and it is **authorization-aware** by design.
 
 It ships with an **agent harness**: a runtime that parses the model's structured tool calls, runs the
 requested security tools (through an authorization gate), and feeds the results back into the conversation.
@@ -47,7 +47,7 @@ requested security tools (through an authorization gate), and feeds the results 
 
 ## ✨ Features
 
-- 🇹🇷 **Turkish-first** — near-native fluency; commands, code, and CVE IDs are preserved verbatim.
+- 🇹🇷 **Native Turkish** — near-native fluency; commands, code, and CVE IDs are preserved verbatim.
 - 🔴🔵 **Red + blue** — from pentesting to incident response, attack and defense in one model.
 - 🖥️ **Server administration** — SSH/systemd/nginx/nftables/SELinux hardening, container & cloud security.
 - 🛠️ **Agentic tool use** — a catalog of **117 tools** (`nmap`, `sqlmap`, `metasploit`, `bloodhound`, …) with
@@ -200,5 +200,5 @@ and evaluating a Turkish cybersecurity assistant from the ground up.
 - **Derived weights / adapters:** subject to the base model's license terms; authorized/ethical use only.
 
 <div align="center">
-<sub>A model that thinks, defends, and — only when authorized — attacks, in Turkish. 🐙</sub>
+<sub>Octópus — an agentic cybersecurity assistant. Authorized use only. 🐙</sub>
 </div>
