@@ -22,8 +22,6 @@
 [![License](https://img.shields.io/badge/code-MIT-green?style=flat-square)](#-license)
 [![Use](https://img.shields.io/badge/use-authorized%2Flab--only-critical?style=flat-square)](#-responsible-use)
 
-<em>“I am Octópus.” — it speaks Turkish, defends and attacks; but only when authorized.</em>
-
 </div>
 
 ---
