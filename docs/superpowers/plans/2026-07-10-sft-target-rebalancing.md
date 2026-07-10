@@ -722,10 +722,16 @@ Expected: coverage report + `[DENETIM] ... -> GECTI` (exit 0). If `KALDI`, raise
 
 > If `build_tools.py` does not yet accept `--src`, add an argparse `--src` (default `str(HERE)`) whose value replaces `HERE` in the `glob` on line ~90. Include this one-line change here and commit it with Task 6.
 
-- [ ] **Step 3: Rebuild the SFT splits**
+- [ ] **Step 3: Rebuild the SFT splits (v0.7 recipe)**
 
-Run: `uv run python -m data.sft.build_sft`
-Expected: new `manifest.json` with `tools` count ≈ 4× previous (~500), `train/val/test` updated.
+Run: `uv run python -m data.sft.build_sft --source distill seed_tr tools`
+Expected: `kaynak: {'distill': 1029, 'seed_tr': 143, 'tools': 381}` (tools 125→381 after dedup of
+560 augmented). `train/val/test` + `manifest.json` updated locally (all gitignored — NOT committed).
+
+> ⚠️ Do NOT run `build_sft` with no args: its `DEFAULT_SOURCES` is the `fenrir/instructurca` hybrid
+> (~105k rows), not the v0.7 `distill+seed_tr+tools` mix. The `--seed-repeat` upsample factor is a
+> retrain-time knob (💰), decided at training, not here. `tools_aug/` is gitignored scratch; the
+> committed artifact is `tools_dist/octopus_tools_tr.jsonl` (reproducible via `--seed 3407`).
 
 - [ ] **Step 4: Verify the whole suite is green**
 
