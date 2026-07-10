@@ -20,10 +20,10 @@ _SKIP = {"octopus_tools_tr.jsonl"}  # build ciktisi — kaynak degil
 
 _CIDR_RE = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d{1,3}){3})/(\d{1,2})(?![\d.])")
 _IP_RE = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d{1,3}){3})(?![\d.])")
-# Lab hostname'leri: bilinen suffiksler (over-match'i onlemek icin dar).
+# Hostname/domain hedefleri: cok-etiketli ad + bilinen TLD (dosya adi/surum degil).
 _HOST_RE = re.compile(
-    r"\b(?:[a-z0-9][a-z0-9-]*\.)*[a-z0-9][a-z0-9-]*\."
-    r"(?:local|internal|kurum\.com)\b"
+    r"\b(?:[a-z0-9][a-z0-9-]*\.)+"
+    r"(?:local|internal|com|net|org|io|dev|tr|gov|edu|co)\b"
 )
 _BARE_HOSTS = ("octopus-target", "kali-victim")
 

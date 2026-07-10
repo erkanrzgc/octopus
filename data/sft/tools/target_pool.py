@@ -17,6 +17,10 @@ HOSTNAMES: tuple[str, ...] = (
     "kali-victim", "db-01.internal", "gitlab.lab.local", "vpn-gw.corp.local",
     "mail.corp.local", "jenkins.lab.local", "fileserver.internal", "portal.kurum.local",
     "wordpress.lab.local", "api-gw.internal", "ad01.corp.local", "backup.lab.local",
+    "intranet.lab.local", "staging.internal", "vault.corp.local", "srv-web02.lab.local",
+    "ns1.corp.local", "proxy.internal", "ci.lab.local", "erp.kurum.local",
+    "shop.magaza.local", "crm.sirket.local", "orneksirket.local", "acme-corp.local",
+    "test-hedef.internal", "dmz-web.lab.local", "helpdesk.corp.local", "grafana.lab.local",
 )
 
 HOSTNAME_SHARE: float = 0.28  # tek-host hedeflerin ~%28'i hostname olur
