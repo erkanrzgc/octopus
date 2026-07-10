@@ -86,8 +86,42 @@ def _tools_of(o: dict) -> set[str]:
     return t
 
 
+def target_audit(rows: list[dict], cap: float = 0.06, host_floor: float = 0.20) -> tuple[bool, str]:
+    """Hedef dagilimi denetimi: tek hedef <= cap; hostname payi >= host_floor."""
+    hedefs: Counter = Counter()
+    for o in rows:
+        for m in o.get("messages", []):
+            if m.get("role") != "assistant":
+                continue
+            for blk in ARAC_RE.findall(m.get("content", "")):
+                try:
+                    v = json.loads(blk).get("parametreler", {})
+                except Exception:
+                    continue
+                for key in ("hedef", "url", "hedef_url", "domain"):
+                    if key in v and isinstance(v[key], str):
+                        t = v[key].replace("http://", "").replace("https://", "").split("/")[0].lstrip("/")
+                        if t:
+                            hedefs[t] += 1
+    total = sum(hedefs.values()) or 1
+    is_host = lambda t: not re.match(r"^\d{1,3}(\.\d{1,3}){3}$", t)  # noqa: E731
+    host_share = sum(c for t, c in hedefs.items() if is_host(t)) / total
+    worst = hedefs.most_common(1)[0] if hedefs else ("-", 0)
+    ok = (worst[1] / total <= cap) and (host_share >= host_floor)
+    lines = [f"[DENETIM] toplam hedef cagrisi={total} | en yogun={worst[0]} ({worst[1]}, "
+             f"{worst[1] / total:.1%}) | hostname payi={host_share:.1%}",
+             f"          esik: tek<= {cap:.0%}, hostname>= {host_floor:.0%} -> "
+             f"{'GECTI' if ok else 'KALDI'}"]
+    return ok, "\n".join(lines)
+
+
 def main() -> None:
-    files = [f for f in sorted(glob.glob(str(HERE / "*.jsonl"))) if Path(f).name != OUT.name]
+    import argparse
+    ap = argparse.ArgumentParser(description="tool-use SFT birlestir + dogrula + denetim")
+    ap.add_argument("--src", default=str(HERE), help="kaynak *.jsonl klasoru (varsayilan: bu klasor)")
+    args = ap.parse_args()
+    src = Path(args.src)
+    files = [f for f in sorted(glob.glob(str(src / "*.jsonl"))) if Path(f).name != OUT.name]
     seen: set[str] = set()
     rows: list[dict] = []
     per_tool: Counter = Counter()
@@ -134,7 +168,11 @@ def main() -> None:
         print(f"   {c:>2}  {t}")
     print(f"\n[BOSLUK] henuz 0 ornekli {len(gaps)} arac (sonraki dalga hedefi):")
     print("   " + ", ".join(gaps))
+    ok, report = target_audit(rows)
+    print(report)
     print("=" * 64)
+    if not ok:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
