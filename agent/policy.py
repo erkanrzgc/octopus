@@ -18,6 +18,7 @@ class Decision:
 class LabPolicy:
     scope: list[str] = field(default_factory=list)  # izinli IP/CIDR (bos = dis hedef yok)
     allow_high: bool = False
+    workspace_root: str | None = None  # asistan dosya araclari icin hapishane koku (None = fs reddi)
 
     @classmethod
     def default(cls) -> "LabPolicy":
@@ -37,6 +38,8 @@ class LabPolicy:
         return False
 
     def decide(self, spec: ToolSpec, params: dict) -> Decision:
+        if spec.domain == "asistan":
+            return self._decide_assistant(spec, params)
         target = target_value(params)
         # FAIL-CLOSED: arac hedef-alan bir param bildiriyorsa ama cagri degerlendirilebilir
         # hedef vermediyse REDDET — yoksa hedef gizlenerek scope kilidi atlanabilir.
@@ -48,3 +51,20 @@ class LabPolicy:
         if spec.risk == "high" and not self.allow_high:
             return Decision(False, True, f"'{spec.name}' yuksek riskli, acik onay gerekir")
         return Decision(True, False, "izinli")
+
+    def _decide_assistant(self, spec: ToolSpec, params: dict) -> Decision:
+        """Asistan-domain araclarini domaine gore fs/cmd/web guard'ina yonlendir (fail-closed)."""
+        from agent.guards import cmd, fs, web
+        name = spec.name
+        if name in ("read_file", "write_file", "edit_file", "list_dir", "grep"):
+            return fs.guard(params, self.workspace_root)
+        if name in ("web_fetch", "web_search"):
+            return web.guard(params)
+        if name == "run_cmd":
+            d = cmd.guard(params)
+            if not d.allowed:
+                return d
+            if spec.risk == "high" and not self.allow_high:
+                return Decision(False, True, f"'{spec.name}' yuksek riskli, acik onay gerekir")
+            return d
+        return Decision(False, False, f"bilinmeyen asistan araci '{name}' (fail-closed)")
