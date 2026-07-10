@@ -41,6 +41,19 @@ DOMAIN_RISK = {
 }
 
 
+# Asistan araclari: egitim verisinde YOK + per-tool risk -> explicit tanim (domain='asistan').
+ASSISTANT_TOOLS: list[dict] = [
+    {"name": "read_file",  "risk": "low",    "params": ("yol",)},
+    {"name": "list_dir",   "risk": "low",    "params": ("yol",)},
+    {"name": "grep",       "risk": "low",    "params": ("desen", "yol")},
+    {"name": "write_file", "risk": "medium", "params": ("yol", "icerik")},
+    {"name": "edit_file",  "risk": "medium", "params": ("yol", "eski", "yeni")},
+    {"name": "run_cmd",    "risk": "high",   "params": ("komut",)},
+    {"name": "web_fetch",  "risk": "low",    "params": ("url",)},
+    {"name": "web_search", "risk": "low",    "params": ("sorgu",)},
+]
+
+
 def _domain_of(tool: str) -> str:
     for dom, tools in DOMAINS.items():
         if tool in tools:
@@ -83,9 +96,12 @@ def main() -> None:
         risk = DOMAIN_RISK.get(dom, "medium")
         prm = params.get(t, ["secenekler"])  # egitimde yoksa makul varsayilan
         lines.append(f"    {{'name': {t!r}, 'domain': {dom!r}, 'risk': {risk!r}, 'params': {tuple(prm)!r}}},")
+    for a in ASSISTANT_TOOLS:
+        lines.append(f"    {{'name': {a['name']!r}, 'domain': 'asistan', "
+                     f"'risk': {a['risk']!r}, 'params': {tuple(a['params'])!r}}},")
     lines.append("]")
     (ROOT / "agent" / "catalog_data.py").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"[OK] catalog_data.py yazildi: {len(MASTER_TOOLS)} arac")
+    print(f"[OK] catalog_data.py yazildi: {len(MASTER_TOOLS)} guvenlik + {len(ASSISTANT_TOOLS)} asistan araci")
 
 
 if __name__ == "__main__":
