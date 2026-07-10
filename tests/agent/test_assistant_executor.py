@@ -48,3 +48,19 @@ def test_web_fetch_uses_injected_client(tmp_path):
 def test_web_search_uses_injected_backend(tmp_path):
     ex = AssistantExecutor(str(tmp_path), search=lambda q: f"RESULTS:{q}")
     assert ex.run("web_search", {"sorgu": "mac saati"}) == "RESULTS:mac saati"
+
+
+def test_default_fetch_blocks_dns_rebinding(tmp_path, monkeypatch):
+    # Varsayilan http_get: fetch aninda host'u yeniden coz + blokla (rebinding penceresi).
+    import socket
+    monkeypatch.setattr(socket, "getaddrinfo",
+                        lambda *a, **k: [(2, 1, 6, "", ("169.254.169.254", 0))])
+    ex = AssistantExecutor(str(tmp_path))            # gercek _default_http_get
+    out = ex.run("web_fetch", {"url": "http://evil.test/"})
+    assert "SSRF" in out                             # metadata IP'ye baglanmadan reddedildi
+
+
+def test_no_redirect_handler_does_not_follow():
+    from agent.backends.assistant_executor import _NoRedirect
+    # 3xx'i takip etmeyi reddeder (None -> urllib HTTPError firlatir, redirect->metadata kapanir).
+    assert _NoRedirect().redirect_request("req", "fp", 302, "msg", {}, "http://169.254.169.254/") is None

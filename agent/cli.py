@@ -119,6 +119,7 @@ def run_assistant_demo(workspace: str | None = None) -> str:
     from agent.policy import LabPolicy
     from agent.toolcall import ToolCall
     ws = workspace or tempfile.mkdtemp(prefix="octopus-ws-")
+    # ws AYNI olmali: policy guard (workspace_root) ile executor (root) ayni hapishaneyi gormeli.
     execu = CompositeExecutor(security=MockExecutor(), assistant=AssistantExecutor(ws))
     registry = ToolRegistry(LabPolicy(scope=[], workspace_root=ws), execu, AuditLog.default())
     steps = [

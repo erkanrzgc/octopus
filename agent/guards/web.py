@@ -14,7 +14,8 @@ def _default_resolve(host: str) -> str:
     return socket.gethostbyname(host)
 
 
-def _blocked(ip_str: str) -> bool:
+def is_blocked_ip(ip_str: str) -> bool:
+    """Ic/ozel/metadata adresi mi (SSRF). Guard + executor fetch ayni kurali kullanir."""
     try:
         ip = ipaddress.ip_address(ip_str)
     except ValueError:
@@ -41,6 +42,6 @@ def guard(params: dict, resolve: Callable[[str], str] = _default_resolve) -> Dec
         ip = resolve(host)
     except OSError:
         return Decision(False, False, f"host cozulemedi: {host} (fail-closed)")
-    if _blocked(ip):
+    if is_blocked_ip(ip):
         return Decision(False, False, f"SSRF: {host} -> {ip} ic/ozel adres reddedildi")
     return Decision(True, False, "izinli")

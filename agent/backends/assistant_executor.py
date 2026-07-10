@@ -9,9 +9,31 @@ from pathlib import Path
 from agent.executor import MockExecutor
 
 
+class _NoRedirect(__import__("urllib.request", fromlist=["HTTPRedirectHandler"]).HTTPRedirectHandler):
+    """3xx'i TAKIP ETME (SSRF redirect bypass'i kapat) -> urllib HTTPError firlatir."""
+    def redirect_request(self, *a, **k):  # noqa: D401, ANN002, ANN003
+        return None
+
+
 def _default_http_get(url: str) -> str:
+    """SSRF-sert HTTP GET. Policy guard'i bir kez baktı; burada fetch ANINDA tekrar bakariz:
+    (1) host'u yeniden coz + is_blocked_ip (DNS-rebinding penceresini daralt), (2) redirect
+    TAKIP ETME (redirect->metadata bypass'i kapat). Kalan TOCTOU: urllib baglanirken 3. kez
+    cozer; tam pinleme https/TLS'i bozar -> local-first icin makul bar."""
+    import socket
     import urllib.request
-    with urllib.request.urlopen(url, timeout=15) as r:  # noqa: S310 - SSRF guard'i policy'de
+    from urllib.parse import urlparse
+
+    from agent.guards.web import is_blocked_ip
+    host = urlparse(url).hostname
+    if not host:
+        raise ValueError("url host'u yok")
+    for res in socket.getaddrinfo(host, None):
+        ip = res[4][0]
+        if is_blocked_ip(ip):
+            raise ValueError(f"SSRF: {host} -> {ip} ic/ozel adres (fetch reddedildi)")
+    opener = urllib.request.build_opener(_NoRedirect)
+    with opener.open(url, timeout=15) as r:  # noqa: S310
         return r.read(200_000).decode("utf-8", "replace")
 
 
@@ -77,6 +99,6 @@ class AssistantExecutor:
                 return self.search(params["sorgu"])
         except KeyError as e:
             return f"HATA: eksik parametre {e}"
-        except OSError as e:
+        except (OSError, ValueError) as e:   # ValueError: SSRF fetch reddi de buraya duser
             return f"HATA: {type(e).__name__}: {e}"
         return f"HATA: bilinmeyen asistan araci '{tool}'"
