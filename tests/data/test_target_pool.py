@@ -30,3 +30,14 @@ def test_determinism_same_seed_same_draw():
     a = [str(tp.sample_host(random.Random(9))) for _ in range(5)]
     b = [str(tp.sample_host(random.Random(9))) for _ in range(5)]
     assert a == b
+
+
+def test_public_domain_classification_keeps_osint_semantics():
+    # OSINT hedefi (public) -> public; lab host (.local/.internal/bare) -> lab
+    assert tp.is_public_domain("orneksirket.com") is True
+    assert tp.is_public_domain("portal.kurum.com") is True
+    assert tp.is_public_domain("ornek-firma.com.tr") is True
+    assert tp.is_public_domain("web01.lab.local") is False
+    assert tp.is_public_domain("api-gw.internal") is False
+    assert tp.is_public_domain("octopus-target") is False
+    assert tp.sample_public_domain(random.Random(7)) in tp.PUBLIC_DOMAINS

@@ -23,7 +23,28 @@ HOSTNAMES: tuple[str, ...] = (
     "test-hedef.internal", "dmz-web.lab.local", "helpdesk.corp.local", "grafana.lab.local",
 )
 
+# Public domain havuzu — OSINT/recon araclari (theHarvester, amass, subfinder, whois...)
+# .local/.internal'i degil, PUBLIC domain alir. Ayri havuz ki OSINT semantigi bozulmasin.
+PUBLIC_DOMAINS: tuple[str, ...] = (
+    "acme-corp.com", "example-corp.net", "ornek-firma.com.tr", "testhedef.io",
+    "kurumsalsite.com", "globex.org", "initech.net", "megacorp.com.tr",
+    "sirket-ornegi.com", "hedefkurum.com", "deneme-sirket.com", "ornekweb.net",
+)
+_PUBLIC_TLDS: tuple[str, ...] = (".com", ".net", ".org", ".io", ".co", ".tr", ".dev", ".gov", ".edu")
+
 HOSTNAME_SHARE: float = 0.28  # tek-host hedeflerin ~%28'i hostname olur
+
+
+def sample_public_domain(rng: random.Random) -> str:
+    return rng.choice(PUBLIC_DOMAINS)
+
+
+def is_public_domain(name: str) -> bool:
+    """Public domain mi (.com/.net/... ) yoksa lab host mu (.local/.internal/bare)?"""
+    n = name.lower()
+    if n.endswith(".local") or n.endswith(".internal"):
+        return False
+    return any(n.endswith(t) for t in _PUBLIC_TLDS)
 
 
 def sample_subnet(rng: random.Random, prefix: int = 24, doc_prob: float = 0.08) -> IPv4Network:

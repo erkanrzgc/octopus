@@ -102,7 +102,8 @@ def build_mapping(ent: Entities, rng: random.Random) -> dict[str, str]:
         else:
             mapping[ip] = _fresh_host(None)
     for hn in ent.hostnames:
-        mapping[hn] = tp.sample_hostname(rng)
+        # public domain (OSINT hedefi) -> public havuz; lab host (.local/.internal) -> lab havuz.
+        mapping[hn] = tp.sample_public_domain(rng) if tp.is_public_domain(hn) else tp.sample_hostname(rng)
     return mapping
 
 
