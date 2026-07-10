@@ -12,6 +12,7 @@ data/corpus/
 data/raw/
 data/sft/*.jsonl
 data/sft/manifest.json
+data/sft/tools_aug/
 data/bin/
 checkpoints/
 checkpoints_web/
