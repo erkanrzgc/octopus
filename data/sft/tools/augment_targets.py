@@ -3,12 +3,20 @@ bir haritayla yeni bir sete cevir, K varyant uret. Kor find-replace DEGIL:
 ayni ornek icinde tarama-ciktisi <-> takip-hedefi baglantisi korunur."""
 from __future__ import annotations
 
+import argparse
+import glob
+import json
 import random
 import re
+import sys
 from dataclasses import dataclass, field
 from ipaddress import IPv4Network, ip_address, ip_network
+from pathlib import Path
 
 from data.sft.tools import target_pool as tp
+
+_HERE = Path(__file__).resolve().parent
+_SKIP = {"octopus_tools_tr.jsonl"}  # build ciktisi — kaynak degil
 
 _CIDR_RE = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d{1,3}){3})/(\d{1,2})(?![\d.])")
 _IP_RE = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d{1,3}){3})(?![\d.])")
@@ -118,3 +126,51 @@ def apply_mapping(example: dict, mapping: dict[str, str]) -> dict:
         if "content" in m:
             m["content"] = _sub_all(m["content"], mapping)
     return {**example, "messages": msgs}
+
+
+def augment_example(example: dict, k: int, rng: random.Random) -> list[dict]:
+    """Orijinal + k tutarli varyant."""
+    out = [example]
+    for _ in range(k):
+        ent = extract_entities(example)
+        out.append(apply_mapping(example, build_mapping(ent, rng)))
+    return out
+
+
+def main(argv: list[str] | None = None) -> None:
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+    ap = argparse.ArgumentParser(description="Hedef dengeleme augmentasyonu")
+    ap.add_argument("--src", default=str(_HERE), help="kaynak *.jsonl klasoru")
+    ap.add_argument("--out", default=str(_HERE.parent / "tools_aug"))
+    ap.add_argument("--k", type=int, default=3)
+    ap.add_argument("--seed", type=int, default=3407)
+    args = ap.parse_args(argv)
+    out_dir = Path(args.out)
+    out_dir.mkdir(exist_ok=True)
+    rng = random.Random(args.seed)
+    total_in = total_out = 0
+    for f in sorted(glob.glob(str(Path(args.src) / "*.jsonl"))):
+        name = Path(f).name
+        if name in _SKIP:
+            continue
+        rows_out: list[dict] = []
+        for line in open(f, encoding="utf-8"):
+            line = line.strip()
+            if not line:
+                continue
+            ex = json.loads(line)
+            total_in += 1
+            rows_out.extend(augment_example(ex, args.k, rng))
+        with open(out_dir / name, "w", encoding="utf-8") as w:
+            for r in rows_out:
+                w.write(json.dumps(r, ensure_ascii=False) + "\n")
+        total_out += len(rows_out)
+        print(f"   {name}: {len(rows_out)} satir")
+    print(f"[OK] {total_in} kaynak -> {total_out} augmented ({out_dir})")
+
+
+if __name__ == "__main__":
+    main()
