@@ -109,6 +109,30 @@ def run_gguf_docker_demo(scope: list[str] | None = None, model: str = "octopus-v
                          target=real_target, label="gguf+docker uctan uca bitti")
 
 
+def run_assistant_demo(workspace: str | None = None) -> str:
+    """Asistan araclari demo: gercek jailed dosya islemi + policy reddi (mock guvenlik elleri)."""
+    import tempfile
+    from agent.audit import AuditLog
+    from agent.backends.assistant_executor import AssistantExecutor
+    from agent.composite_executor import CompositeExecutor
+    from agent.executor import MockExecutor
+    from agent.policy import LabPolicy
+    from agent.toolcall import ToolCall
+    ws = workspace or tempfile.mkdtemp(prefix="octopus-ws-")
+    execu = CompositeExecutor(security=MockExecutor(), assistant=AssistantExecutor(ws))
+    registry = ToolRegistry(LabPolicy(scope=[], workspace_root=ws), execu, AuditLog.default())
+    steps = [
+        ToolCall(name="write_file", params={"yol": "not.txt", "icerik": "Octópus lab notu"}),
+        ToolCall(name="read_file", params={"yol": "not.txt"}),
+        ToolCall(name="write_file", params={"yol": "../kacis.txt", "icerik": "x"}),  # reddedilmeli
+    ]
+    lines = [f"[workspace] {ws}"]
+    for c in steps:
+        lines.append(f"[{c.name}] -> {registry.invoke(c)}")
+    lines.append("(asistan demo bitti)")
+    return "\n".join(lines)
+
+
 def main() -> None:
     # Windows konsolu (cp1254) ó/Ç basamaz -> UTF-8.
     try:
@@ -120,11 +144,14 @@ def main() -> None:
     ap.add_argument("--real", action="store_true", help="RealExecutor: Kali WSL'de gercek nmap")
     ap.add_argument("--docker", action="store_true", help="DockerExecutor: lab docker aginda gercek nmap")
     ap.add_argument("--gguf", action="store_true", help="GgufModel: Ollama'da gercek v0.7")
+    ap.add_argument("--assistant", action="store_true", help="Asistan araclari demo (jailed file + policy)")
     ap.add_argument("--model", default=None, help="Ollama model adi (varsayilan octopus-v7)")
     ap.add_argument("--target", default=None, help="hedef (mod varsayilanini ezer)")
     ap.add_argument("--port", type=int, default=None, help="taranacak port (mod varsayilani)")
     args = ap.parse_args()
-    if args.gguf and args.docker:
+    if args.assistant:
+        print(run_assistant_demo())
+    elif args.gguf and args.docker:
         print(run_gguf_docker_demo(args.scope, args.model or "octopus-v7",
                                    args.target or "octopus-target"))
     elif args.gguf:
