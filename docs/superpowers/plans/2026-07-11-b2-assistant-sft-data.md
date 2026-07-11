@@ -163,6 +163,24 @@ def _run_cmd(r: random.Random) -> dict:
                "22 (SSH) ve 80 (HTTP) dinleniyor; disa acik iki servis.")
 
 
+def _run_cmd_git_status(r: random.Random) -> dict:
+    return _ex("Depoda hangi degisiklikler var?", "run_cmd", {"komut": "git status --short"},
+               " M core/engine.py\n?? scans/yeni.md",
+               "engine.py degismis, scans/yeni.md izlenmiyor. Commit oncesi ikisini de gozden gecir.")
+
+
+def _run_cmd_git_log(r: random.Random) -> dict:
+    return _ex("Son commit'leri goster.", "run_cmd", {"komut": "git log --oneline -3"},
+               "a1b2c3d fix: ssrf sertlestir\n9f8e7d6 feat: web_fetch guard\n1122334 docs: b1 spec",
+               "Son 3 commit SSRF/guard/spec ustune; en yeni 'ssrf sertlestir'. Dal aktif calisiliyor.")
+
+
+def _run_cmd_git_diff(r: random.Random) -> dict:
+    return _ex("Sahnelenmemis degisiklikleri goster.", "run_cmd", {"komut": "git diff"},
+               "-    timeout = 5\n+    timeout = 30",
+               "Tek degisiklik: timeout 5->30 sn. Mantikli (yavas hedefler). Commit'e hazir.")
+
+
 def _web_fetch(r: random.Random) -> dict:
     h = r.choice(URL_HOSTS)
     cve = f"CVE-2024-{r.randint(1000, 9999)}"
@@ -181,9 +199,12 @@ def _web_search(r: random.Random) -> dict:
 
 RECIPES: dict[str, list[Callable[[random.Random], dict]]] = {
     "read_file": [_read_file], "list_dir": [_list_dir], "grep": [_grep],
-    "write_file": [_write_file], "edit_file": [_edit_file], "run_cmd": [_run_cmd],
+    "write_file": [_write_file], "edit_file": [_edit_file],
+    "run_cmd": [_run_cmd, _run_cmd_git_status, _run_cmd_git_log, _run_cmd_git_diff],
     "web_fetch": [_web_fetch], "web_search": [_web_search],
 }
+# NOT: git AYRI arac DEGIL — run_cmd uzerinden gecer (git status/log/diff/commit). Model'in
+# git bilmesi = run_cmd'de git komutlarini dogru uretmesi + ciktisini (durum/diff/log) yorumlamasi.
 
 
 def build(n: int, seed: int) -> list[dict]:
@@ -338,7 +359,14 @@ git commit -m "feat(b2): asistan anlama ornekleri elle (~70, negatif+CVE+sentez)
 **Kategoriler (spec §6-C, §6-D):**
 - **Saf-asistan zincir:** web_search CVE → write_file exploit → run_cmd → yorum.
 - **Güvenlik×asistan karışık (asıl değer):** nmap → write_file rapor; secretsdump → read_file parse; nikto → web_search CVE doğrula.
+- **Git iş-akışı zinciri (≥3):** `run_cmd git status` → `run_cmd git diff` (oku/yorumla) → `run_cmd git commit -m "..."`; en az bir örnekte `git log` çıktısını **anlama** (hangi commit ne yapmış). git AYRI arac değil, run_cmd üzerinden.
 - **Ret:** run_cmd yıkıcı (`rm -rf /`) → "yapmam"; web_fetch metadata (`169.254.169.254`)/loopback → ret; traversal yol → ret. (B1 guard denylist'iyle tutarlı.)
+
+> **Gerçekçilik kaynağı (elle yazımda):** `tool` çıktılarını uydurmak yerine kullanıcının
+> `cyberm4fia-scanner` gerçek formatlarını örnek al ([[octopus-cyberm4fia-repos]]): bulgu
+> durum-makinesi (`suspected→verified→exploitable`), MITRE ATT&CK etiketi, SARIF/JSON bulgu,
+> saldırı zinciri (LFI→log poisoning→RCE). Scanner'ın kendisi de bir `run_cmd` hedefi olabilir
+> (`python scanner.py --target ...`). Windows'ta repo checkout patlar → `git show HEAD:core/output.py`.
 
 **Karışık-zincir exemplar (`chains_tr.jsonl` desenini asistan araçlarıyla birleştirir):**
 
@@ -398,6 +426,21 @@ def test_ret_ornekleri_var():
     ret = sum(1 for o in _rows()
               if "yapmam" in " ".join(m["content"] for m in o["messages"] if m["role"] == "assistant"))
     assert ret >= 15, f"ret ornegi az: {ret}"
+
+def test_git_is_akisi_var():
+    # en az 3 ornekte run_cmd ile git komutu (status/diff/log/commit)
+    hits = 0
+    for o in _rows():
+        blob = " ".join(m["content"] for m in o["messages"] if m["role"] == "assistant")
+        if re.search(r'"komut"\s*:\s*"git ', blob):
+            hits += 1
+    assert hits >= 3, f"git is-akisi ornegi az: {hits}"
+```
+
+**Git zinciri exemplar:**
+
+```json
+{"messages":[{"role":"system","content":"Sen Octópus'sun: yetkili siber güvenlik asistanı. Araçları ```arac``` bloğuyla çağırırsın. Yalnızca izinli kapsam."},{"role":"user","content":"Değişiklikleri gözden geçir ve uygunsa commit'le."},{"role":"assistant","content":"Önce durumu görüyorum.\n```arac\n{\"arac\":\"run_cmd\",\"parametreler\":{\"komut\":\"git status --short\"}}\n```"},{"role":"tool","content":" M modules/sqli.py"},{"role":"assistant","content":"Tek değişiklik `modules/sqli.py`. Farkı okuyayım:\n```arac\n{\"arac\":\"run_cmd\",\"parametreler\":{\"komut\":\"git diff modules/sqli.py\"}}\n```"},{"role":"tool","content":"-    payload = \"' OR 1=1\"\n+    payload = \"' OR 1=1-- -\""},{"role":"assistant","content":"Değişiklik mantıklı: SQLi payload'ına yorum eki (`-- -`) eklenmiş, sorgu kuyruğunu kesiyor. Commit'liyorum:\n```arac\n{\"arac\":\"run_cmd\",\"parametreler\":{\"komut\":\"git commit -am 'fix: sqli payload yorum eki'\"}}\n```"},{"role":"tool","content":"[main 7f3a1b2] fix: sqli payload yorum eki\n 1 file changed, 1 insertion(+), 1 deletion(-)"},{"role":"assistant","content":"Commit alındı (`7f3a1b2`). Tek dosya, tek satır — temiz. İstersen `git log` ile doğrulayabilirim."}]}
 ```
 
 - [ ] **Step 2: Testin başarısız olduğunu doğrula**
