@@ -17,6 +17,10 @@ from data.sft.tools import target_pool as tp
 
 _HERE = Path(__file__).resolve().parent
 _SKIP = {"octopus_tools_tr.jsonl"}  # build ciktisi — kaynak degil
+# asistan_* dosyalari (B2): semantik ornekler (ret'lerde 169.254.169.254/127.0.0.1 gibi
+# ANLAMLI IP'ler var) — hedef remap ETME, verbatim kopyala. Boylece tools_aug'a girer
+# ama SSRF/loopback/metadata anlatilari bozulmaz.
+_NOAUG = ("asistan_",)
 
 _CIDR_RE = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d{1,3}){3})/(\d{1,2})(?![\d.])")
 _IP_RE = re.compile(r"(?<![\d.])(\d{1,3}(?:\.\d{1,3}){3})(?![\d.])")
@@ -157,6 +161,7 @@ def main(argv: list[str] | None = None) -> None:
         name = Path(f).name
         if name in _SKIP:
             continue
+        noaug = name.startswith(_NOAUG)  # asistan_* -> remap YOK, verbatim kopyala
         rows_out: list[dict] = []
         for line in open(f, encoding="utf-8"):
             line = line.strip()
@@ -164,7 +169,7 @@ def main(argv: list[str] | None = None) -> None:
                 continue
             ex = json.loads(line)
             total_in += 1
-            rows_out.extend(augment_example(ex, args.k, rng))
+            rows_out.extend([ex] if noaug else augment_example(ex, args.k, rng))
         with open(out_dir / name, "w", encoding="utf-8") as w:
             for r in rows_out:
                 w.write(json.dumps(r, ensure_ascii=False) + "\n")
