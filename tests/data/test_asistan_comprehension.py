@@ -6,6 +6,14 @@ from pathlib import Path
 P = Path("data/sft/tools/asistan_tr.jsonl")
 ARAC = re.compile(r"```arac\s*(\{.*?\})\s*```", re.S)
 
+# Asistan prozasi Turkce diakritikli (B2). Desenler ASCII yazildigindan metni
+# diakritik-duyarsiz karsilastirmak icin foldla: "erişemedim" -> "erisemedim".
+_FOLD = str.maketrans("şğıİçöüŞĞÇÖÜ", "sgiIcouSGCOU")
+
+
+def _fold(s: str) -> str:
+    return s.translate(_FOLD).lower()
+
 
 def _rows():
     return [json.loads(l) for l in P.read_text(encoding="utf-8").splitlines() if l.strip()]
@@ -24,8 +32,8 @@ def test_negatif_ornekler_var():
               "iddia etmiyorum", "soyleyemem", "alamadim")
     hits = 0
     for o in _rows():
-        toolc = " ".join(m["content"] for m in o["messages"] if m["role"] == "tool").lower()
-        last = o["messages"][-1]["content"].lower()
+        toolc = _fold(" ".join(m["content"] for m in o["messages"] if m["role"] == "tool"))
+        last = _fold(o["messages"][-1]["content"])
         if any(w in toolc for w in NEG_TOOL) and any(w in last for w in HONEST):
             hits += 1
     assert hits >= 15, f"negatif/bos anlama ornegi az: {hits}"
