@@ -442,6 +442,16 @@ git commit -m "docs(d1): pilot dogrulama — teknik tarama + signal-oran raporu 
 
 ---
 
+## PİLOT DURUMU (2026-07-18 — kod tamam, retrain bekliyor)
+
+Task 1-5 tamamlandı. Veri `data/sft/distilled/octopus_distill_d1_reasoning.jsonl` = **39 kayıt**
+(15 Tip A reasoning→cevap + 24 Tip B agentic zincir). Commit'ler: `84f2400` strip_dusunce · `d464d27`
+loop entegrasyon · `7564cd3` Tip A · `0df5e90` Tip B. Test suite 161 yeşil (format+strip+zincir).
+**Signal-oran sağlıklı:** reasoning distill'in %3.4'ü, düşünce ort **22 kelime** (max 28, cap 90) —
+araç sinyalini boğmayacak ölçekte. Teknik doğruluk elle tarandı: CVE/sürüm/vaka iddiaları PASS
+(CVE-2021-4034=PwnKit, -44228=Log4Shell, -41773=Apache 2.4.49, -0778=OpenSSL DoS; KRACK/Dragonblood
+doğru; uydurma yok). **Ölçüm-kapısı sonucu:** _(retrain sonrası doldurulacak)_.
+
 ## ÖLÇÜM KAPISI (retrain SONRASI — 💰 PARA-CHECKPOINT, bu planın DIŞI)
 
 Bu plan biter bitmez pilot verisi hazırdır AMA reasoning'in araçları bozup bozmadığı ancak
