@@ -39,3 +39,18 @@ def test_dusunce_ascii_ad():
     for o in _rows():
         blob = " ".join(m["content"] for m in o["messages"])
         assert "```düşünce" not in blob and "```dusunce" in blob
+
+
+def test_agentic_zincirde_dusunce_ve_arac_birlikte():
+    # En az 20 kayit: tool rolu iceren zincir; arac'li assistant turu ayni zamanda dusunce icermeli
+    chain_hits = 0
+    for o in _rows():
+        if "tool" not in [m["role"] for m in o["messages"]]:
+            continue
+        chain_hits += 1
+        asst_with_arac = [m for m in o["messages"]
+                          if m["role"] == "assistant" and ARAC.search(m["content"])]
+        assert asst_with_arac, "agentic zincirde arac blogu yok"
+        for m in asst_with_arac:
+            assert "```dusunce" in m["content"], "arac'li turda dusunce yok"
+    assert chain_hits >= 20, f"agentic zincir az: {chain_hits}"
