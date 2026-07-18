@@ -6,6 +6,7 @@ from pathlib import Path
 P = Path("data/sft/distilled/octopus_distill_d1_reasoning.jsonl")
 DUSUNCE = re.compile(r"```dusunce\s*(.*?)```", re.S)
 ARAC = re.compile(r"```arac\s*\{.*?\}\s*```", re.S)
+ARAC_JSON = re.compile(r"```arac\s*(\{.*?\})\s*```", re.S)
 
 
 def _rows():
@@ -39,6 +40,17 @@ def test_dusunce_ascii_ad():
     for o in _rows():
         blob = " ".join(m["content"] for m in o["messages"])
         assert "```düşünce" not in blob and "```dusunce" in blob
+
+
+def test_arac_adlari_katalogda_gecerli():
+    # agentic zincirlerdeki her arac adi GERCEK katalogda olmali — yoksa model
+    # 'bilinmeyen arac' uretmeyi ogrenir ve arac guvenilirligi DUSER (pilotun amacini ters cevirir)
+    from agent.catalog import get_spec
+    for o in _rows():
+        for m in o["messages"]:
+            for blob in ARAC_JSON.findall(m["content"]):
+                name = json.loads(blob)["arac"]
+                assert get_spec(name) is not None, f"katalogda olmayan arac: {name}"
 
 
 def test_agentic_zincirde_dusunce_ve_arac_birlikte():
