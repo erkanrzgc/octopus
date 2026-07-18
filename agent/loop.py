@@ -6,7 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from agent.messages import Message
 from agent.registry import ToolRegistry
-from agent.toolcall import ToolCall, parse_arac_calls
+from agent.toolcall import ToolCall, parse_arac_calls, strip_dusunce
 
 Generate = Callable[[list[Message]], str]
 
@@ -31,11 +31,11 @@ def run_tool_loop(
         messages.append(Message("assistant", reply))
         calls = parse_arac_calls(reply)
         if not calls:
-            return ToolLoopResult(final=reply, steps=step + 1, calls=executed)
+            return ToolLoopResult(final=strip_dusunce(reply), steps=step + 1, calls=executed)
         for call in calls:
             result = registry.invoke(call)
             executed.append(call)
             messages.append(Message("tool", result))
     final = generate(messages)
     messages.append(Message("assistant", final))
-    return ToolLoopResult(final=final, steps=max_steps, calls=executed)
+    return ToolLoopResult(final=strip_dusunce(final), steps=max_steps, calls=executed)
