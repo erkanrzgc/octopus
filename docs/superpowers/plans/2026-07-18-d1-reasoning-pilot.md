@@ -457,8 +457,21 @@ doğru; uydurma yok). **Ölçüm-kapısı sonucu:** _(retrain sonrası doldurula
 Bu plan biter bitmez pilot verisi hazırdır AMA reasoning'in araçları bozup bozmadığı ancak
 retrain'le ölçülür. **DUR — kullanıcı onayı olmadan retrain yapma.** Retrain sonrası:
 
-1. Mevcut agent harness (`parse_arac_calls` + 39 test) ile v0.7 vs v0.8-pilot **araç-çağrı
-   güvenilirliği** kıyasla: arac bloğu üretme oranı, JSON geçerliliği, doğru araç seçimi.
+**⚠️ ÖNKOŞUL (advisor buldu — retrain parası HARCANMADAN önce, BEDAVA):** Bu kıyas bir ENSTRÜMAN
+gerektirir ve şu an YOK. `parse_arac_calls` + testler yalnız PARSER'ı test eder, modelin geçerli
+çağrı ÜRETME eğilimini değil. Yapılacak (bedava, retrain öncesi): (a) `octopus-eval` skill'iyle
+tutulmuş bir araç-çağrı eval seti kur (held-out istem → beklenen arac/param), skorlama = geçerli
+arac oranı + JSON geçerliliği + doğru araç + katalog-geçerliliği. (b) Yerel Ollama GGUF v0.7 ile
+**baseline'ı ŞİMDİ yakala**. Yoksa: ya retrain parası harcanıp v0.8 sayısıyla kıyaslanacak temel
+olmaz, ya da eval'in hiç kurulmadığı retrain sonrası anlaşılır. Bu enstrüman AYRI bir görev.
+
+**Ayrıca (advisor #3):** `cli.py` şu an `ToolLoopResult.final`'ı DEĞİL ham mesaj geçmişini basar
+(lab demo, kasıtlı tam-transkript). Yani `strip_dusunce` bir PRİMİTİF olarak hazır ama gerçek
+kullanıcı-yüzü display'e bağlanması harness-display görevinin (#3) işi; "kullanıcıdan gizlendi"
+diye tam bitmiş sayılMAZ. Primitif + birim testi var; entegrasyon #3'te.
+
+1. Enstrüman kurulunca: v0.7 vs v0.8-pilot **araç-çağrı güvenilirliği** kıyasla: arac bloğu üretme
+   oranı, JSON geçerliliği, doğru araç seçimi, katalog-geçerliliği.
 2. **Eşik:** araç güvenilirliğinde >~5 puan düşüş YOKSA → D1'i ölçekle + D2 (hafıza) + D3 (skill).
    VARSA → düşünceyi kısalt / oranı düşür / loss-masking pilotu; olmuyorsa reasoning'i v0.9'a
    ertele, v0.8'i D2+D3 ile gönder.
