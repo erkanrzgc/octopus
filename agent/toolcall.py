@@ -8,6 +8,15 @@ from agent.messages import Message
 from data.sft.normalize import flatten_tool_messages
 
 _ARAC_RE = re.compile(r"```arac\s*(\{.*?\})\s*```", re.S)
+_DUSUNCE_RE = re.compile(r"```dusunce\s*.*?```", re.S)
+
+
+def strip_dusunce(text: str) -> str:
+    """Kullaniciya giden metinden ```dusunce``` bloklarini sok (ic muhakeme gizli).
+
+    Blok yoksa metni aynen dondurur; asla cokmez. arac blogu KORUNUR (ayri parse edilir).
+    """
+    return _DUSUNCE_RE.sub("", text or "").strip()
 
 
 @dataclass(frozen=True)
