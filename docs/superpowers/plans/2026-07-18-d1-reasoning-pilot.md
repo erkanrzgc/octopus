@@ -470,8 +470,22 @@ olmaz, ya da eval'in hiç kurulmadığı retrain sonrası anlaşılır. Bu enstr
 kullanıcı-yüzü display'e bağlanması harness-display görevinin (#3) işi; "kullanıcıdan gizlendi"
 diye tam bitmiş sayılMAZ. Primitif + birim testi var; entegrasyon #3'te.
 
-1. Enstrüman kurulunca: v0.7 vs v0.8-pilot **araç-çağrı güvenilirliği** kıyasla: arac bloğu üretme
-   oranı, JSON geçerliliği, doğru araç seçimi, katalog-geçerliliği.
+**✅ ENSTRÜMAN + BASELINE HAZIR (2026-07-19, commit'ler 108dc09 + b74c8fa):** `eval/toolcall_eval.py`
+(skorer, harness primitifleriyle) + 24 tutulmuş TR istem (`eval/data/toolcall_eval_tr.jsonl`) +
+`eval.run_toolcall_eval` CLI (Ollama). **v0.7 baseline** (`eval/reports/toolcall_v0.7-baseline_*.md`):
+
+| Metrik | v0.7 baseline | v0.8-pilot (retrain sonrası) |
+|---|---|---|
+| emitted (arac üretti) | **83%** | _(ölç)_ |
+| valid_call (geçerli JSON) | **79%** | _(ölç)_ |
+| in_catalog (katalog geçerli) | **50%** | _(ölç)_ |
+| expected_tool (doğru araç) | **46%** | _(ölç)_ |
+
+Bulgu: v0.7 ~%29 katalog-DIŞI araç adı uyduruyor (ssh_brute, kiterunner, volatility↔volatility3).
+Kıyas komutu (retrain sonrası): `uv run python -m eval.run_toolcall_eval --model octopus-v8 --label v0.8-pilot`.
+
+1. Kıyas: v0.7 baseline vs v0.8-pilot **araç-çağrı güvenilirliği** (yukarıdaki 4 metrik). Kritik izlenen:
+   **in_catalog** ve **expected_tool** — reasoning bunları DÜŞÜRMEMELİ (ideal: sabit/artış).
 2. **Eşik:** araç güvenilirliğinde >~5 puan düşüş YOKSA → D1'i ölçekle + D2 (hafıza) + D3 (skill).
    VARSA → düşünceyi kısalt / oranı düşür / loss-masking pilotu; olmuyorsa reasoning'i v0.9'a
    ertele, v0.8'i D2+D3 ile gönder.
