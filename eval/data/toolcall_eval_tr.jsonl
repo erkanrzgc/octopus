@@ -1,0 +1,24 @@
+{"prompt": "192.168.1.50 hedefindeki açık portları ve servis sürümlerini öğrenmek istiyorum.", "expected": ["nmap", "rustscan", "masscan"]}
+{"prompt": "example.com alan adının alt alan adlarını pasifçe topla.", "expected": ["subfinder", "amass", "theHarvester"]}
+{"prompt": "http://10.0.0.8 sitesinde gizli dizin ve dosyaları keşfet.", "expected": ["gobuster", "ffuf", "feroxbuster", "dirsearch", "dirb"]}
+{"prompt": "https://shop.test/urun?id=3 adresinde SQL injection var mı test et.", "expected": ["sqlmap"]}
+{"prompt": "acme.com için çalışan e-postalarını ve alt alanları açık kaynaklardan topla.", "expected": ["theHarvester", "spiderfoot", "recon-ng"]}
+{"prompt": "blog.hedef.com bir WordPress sitesi, güvenlik zafiyetlerini tara.", "expected": ["wpscan"]}
+{"prompt": "suspicious-domain.net alan adının whois kayıt bilgisini getir.", "expected": ["whois"]}
+{"prompt": "10.10.10.20 web sunucusunda bilinen yanlış yapılandırmaları hızlıca tara.", "expected": ["nikto", "nuclei", "whatweb"]}
+{"prompt": "Bir kablosuz ağın WPA2 el sıkışmasını sözlükle kırmayı dene (yetkili lab).", "expected": ["aircrack-ng", "hashcat", "john"]}
+{"prompt": "hedef.local Active Directory ortamında yanal hareket yollarını haritala.", "expected": ["bloodhound-python", "netexec", "enum4linux-ng"]}
+{"prompt": "captured.pcap dosyasındaki 10.0.0.5 IP'sine ait trafiği filtrele.", "expected": ["tshark", "wireshark", "tcpdump"]}
+{"prompt": "shadow.txt içindeki parola hash'lerini sözlük saldırısıyla kırmayı dene.", "expected": ["john", "hashcat"]}
+{"prompt": "10.10.10.30 üzerindeki SMB paylaşımlarını listele.", "expected": ["smbclient", "smbmap", "netexec", "enum4linux-ng"]}
+{"prompt": "malware.bin dosyasını gömülü dosya ve stringler için analiz et.", "expected": ["binwalk", "strings", "foremost"]}
+{"prompt": "target.io alanı için sertifika şeffaflığı ve DNS kayıtlarından keşif yap.", "expected": ["amass", "subfinder", "dnsrecon", "dnsenum"]}
+{"prompt": "http://10.0.0.12/api uç noktasında gizli parametreleri keşfet.", "expected": ["arjun", "paramspider"]}
+{"prompt": "10.10.10.40 hedefinde SSH servisine karşı parola kaba-kuvvet dene (yetkili).", "expected": ["hydra", "medusa", "netexec"]}
+{"prompt": "Bellek imajı memory.dmp içinde çalışan süreçleri ve enjeksiyonu incele.", "expected": ["volatility3"]}
+{"prompt": "shodan üzerinde 'org:Acme Corp' varlıklarını dışarıdan görünür şekilde ara.", "expected": ["shodan"]}
+{"prompt": "http://10.0.0.15 sitesinde yansıyan XSS zafiyetini test et.", "expected": ["dalfox", "xsstrike", "nuclei"]}
+{"prompt": "suspicious.exe dosyasını bilinen kötücül imzalara karşı tara.", "expected": ["clamav", "yara"]}
+{"prompt": "192.168.1.0/24 ağındaki canlı hostları keşfet.", "expected": ["netdiscover", "arp-scan", "fping", "nmap"]}
+{"prompt": "reddit.com kullanıcısı 'johndoe' için sosyal medya hesaplarını ara.", "expected": ["sherlock", "spiderfoot"]}
+{"prompt": "Linux kutusunda yerel yetki yükseltme yollarını otomatik tara.", "expected": ["linpeas"]}
