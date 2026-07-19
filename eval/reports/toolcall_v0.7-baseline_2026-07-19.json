@@ -1,0 +1,314 @@
+{
+  "label": "v0.7-baseline",
+  "model": "octopus-v7",
+  "toplam": 24,
+  "oranlar": {
+    "emitted": 0.8333333333333334,
+    "valid_call": 0.7916666666666666,
+    "in_catalog": 0.5,
+    "expected_tool": 0.4583333333333333
+  },
+  "satirlar": [
+    {
+      "prompt": "192.168.1.50 hedefindeki açık portları ve servis sürümlerini öğrenmek istiyorum.",
+      "expected": [
+        "nmap",
+        "rustscan",
+        "masscan"
+      ],
+      "arac": "ToolCall(name='nmap', params={'hedef': '192.168.1.50', 'secenekler': '-sS -sV --top-ports 1000'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "example.com alan adının alt alan adlarını pasifçe topla.",
+      "expected": [
+        "subfinder",
+        "amass",
+        "theHarvester"
+      ],
+      "arac": "ToolCall(name='subfinder', params={'domain': 'example.com', 'secenekler': '-all -silent'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "http://10.0.0.8 sitesinde gizli dizin ve dosyaları keşfet.",
+      "expected": [
+        "gobuster",
+        "ffuf",
+        "feroxbuster",
+        "dirsearch",
+        "dirb"
+      ],
+      "arac": "ToolCall(name='dirb', params={'url': 'http://10.0.0.8', 'secenekler': '/usr/share/dirb/wordlists/common.txt -r'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "https://shop.test/urun?id=3 adresinde SQL injection var mı test et.",
+      "expected": [
+        "sqlmap"
+      ],
+      "arac": "ToolCall(name='sqlmap', params={'url': 'https://shop.test/urun?id=3', 'secenekler': '--batch --level=2 --risk=2 --m'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "acme.com için çalışan e-postalarını ve alt alanları açık kaynaklardan topla.",
+      "expected": [
+        "theHarvester",
+        "spiderfoot",
+        "recon-ng"
+      ],
+      "arac": "ToolCall(name='theHarvester', params={'domain': 'acme.com', 'kaynaklar': ['hunter', 'u συγκεκριμένος', 'greek-domain-list']})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "blog.hedef.com bir WordPress sitesi, güvenlik zafiyetlerini tara.",
+      "expected": [
+        "wpscan"
+      ],
+      "arac": "ToolCall(name='wpscan', params={'url': 'blog.hedef.com', 'secenekler': '--enumerate u,vp,vt --plugins-detection aggressive'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "suspicious-domain.net alan adının whois kayıt bilgisini getir.",
+      "expected": [
+        "whois"
+      ],
+      "arac": "ToolCall(name='whois', params={'domain': 'suspicious-domain.net'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "10.10.10.20 web sunucusunda bilinen yanlış yapılandırmaları hızlıca tara.",
+      "expected": [
+        "nikto",
+        "nuclei",
+        "whatweb"
+      ],
+      "arac": "ToolCall(name='nuclei', params={'secenekler': '-t cves/ -t base/ -t vulnerable-web-app-techs/ -u http://10.10.10.20'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "Bir kablosuz ağın WPA2 el sıkışmasını sözlükle kırmayı dene (yetkili lab).",
+      "expected": [
+        "aircrack-ng",
+        "hashcat",
+        "john"
+      ],
+      "arac": null,
+      "emitted": false,
+      "valid_call": false,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "hedef.local Active Directory ortamında yanal hareket yollarını haritala.",
+      "expected": [
+        "bloodhound-python",
+        "netexec",
+        "enum4linux-ng"
+      ],
+      "arac": "ToolCall(name='bloodhound-python', params={'hedef': 'corp.local', 'secenekler': '-d 365 -s 1800'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "captured.pcap dosyasındaki 10.0.0.5 IP'sine ait trafiği filtrele.",
+      "expected": [
+        "tshark",
+        "wireshark",
+        "tcpdump"
+      ],
+      "arac": null,
+      "emitted": false,
+      "valid_call": false,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "shadow.txt içindeki parola hash'lerini sözlük saldırısıyla kırmayı dene.",
+      "expected": [
+        "john",
+        "hashcat"
+      ],
+      "arac": null,
+      "emitted": false,
+      "valid_call": false,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "10.10.10.30 üzerindeki SMB paylaşımlarını listele.",
+      "expected": [
+        "smbclient",
+        "smbmap",
+        "netexec",
+        "enum4linux-ng"
+      ],
+      "arac": "ToolCall(name='smb-vuln-scanner', params={'hedef': '10.10.10.30', 'secenekler': '--shares'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "malware.bin dosyasını gömülü dosya ve stringler için analiz et.",
+      "expected": [
+        "binwalk",
+        "strings",
+        "foremost"
+      ],
+      "arac": "ToolCall(name='embedded-file-detector', params={'dosya': 'malware.bin'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "target.io alanı için sertifika şeffaflığı ve DNS kayıtlarından keşif yap.",
+      "expected": [
+        "amass",
+        "subfinder",
+        "dnsrecon",
+        "dnsenum"
+      ],
+      "arac": null,
+      "emitted": true,
+      "valid_call": false,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "http://10.0.0.12/api uç noktasında gizli parametreleri keşfet.",
+      "expected": [
+        "arjun",
+        "paramspider"
+      ],
+      "arac": "ToolCall(name='kiterunner', params={'url': 'http://10.0.0.12/api', 'secenekler': '-m GET'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "10.10.10.40 hedefinde SSH servisine karşı parola kaba-kuvvet dene (yetkili).",
+      "expected": [
+        "hydra",
+        "medusa",
+        "netexec"
+      ],
+      "arac": "ToolCall(name='ssh_brute', params={'hedef': 'root@10.10.10.40', 'secenekler': '-w rockyou.txt'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "Bellek imajı memory.dmp içinde çalışan süreçleri ve enjeksiyonu incele.",
+      "expected": [
+        "volatility3"
+      ],
+      "arac": "ToolCall(name='volatility', params={'dosya': 'memory.dmp', 'eklentiler': 'pslist,malfind -m'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "shodan üzerinde 'org:Acme Corp' varlıklarını dışarıdan görünür şekilde ara.",
+      "expected": [
+        "shodan"
+      ],
+      "arac": null,
+      "emitted": false,
+      "valid_call": false,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "http://10.0.0.15 sitesinde yansıyan XSS zafiyetini test et.",
+      "expected": [
+        "dalfox",
+        "xsstrike",
+        "nuclei"
+      ],
+      "arac": "ToolCall(name='reflect-xss', params={'url': 'http://10.0.0.15/some-page?param=<script>alert(1)</script>'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "suspicious.exe dosyasını bilinen kötücül imzalara karşı tara.",
+      "expected": [
+        "clamav",
+        "yara"
+      ],
+      "arac": "ToolCall(name='yara', params={'kurallar': 'malfind.yar', 'hedef': 'suspicious.exe'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    },
+    {
+      "prompt": "192.168.1.0/24 ağındaki canlı hostları keşfet.",
+      "expected": [
+        "netdiscover",
+        "arp-scan",
+        "fping",
+        "nmap"
+      ],
+      "arac": "ToolCall(name='rustscan', params={'hedef': '192.168.1.0/24', 'secenekler': '-g --ulimit 5000 --risk high'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": false
+    },
+    {
+      "prompt": "reddit.com kullanıcısı 'johndoe' için sosyal medya hesaplarını ara.",
+      "expected": [
+        "sherlock",
+        "spiderfoot"
+      ],
+      "arac": "ToolCall(name='hunter.sh', params={'hedef': 'reddit.com/user/johndoe', 'secenekler': '-e'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": false,
+      "expected_tool": false
+    },
+    {
+      "prompt": "Linux kutusunda yerel yetki yükseltme yollarını otomatik tara.",
+      "expected": [
+        "linpeas"
+      ],
+      "arac": "ToolCall(name='linpeas', params={'secenekler': '-a'})",
+      "emitted": true,
+      "valid_call": true,
+      "in_catalog": true,
+      "expected_tool": true
+    }
+  ]
+}
