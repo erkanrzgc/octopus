@@ -8,9 +8,16 @@ import argparse
 import re
 import sys
 from agent.backends.mock_model import ScriptedModel
+from agent.display import render_transcript
 from agent.loop import run_tool_loop
 from agent.messages import Message
 from agent.registry import ToolRegistry
+
+
+def _format_run(msgs: list[Message], result, label: str) -> str:
+    """Döngü transcript'ini Claude Code tarzı render et + kısa özet altbilgisi (DRY: tüm demolar)."""
+    footer = f"(adim={result.steps}, cagri={len(result.calls)}) ({label})"
+    return f"{render_transcript(msgs, color=sys.stdout.isatty())}\n{footer}"
 
 # Docker container-adi grameri: harf/rakam ile baslar, ardindan [A-Za-z0-9_.-]. Enjeksiyon
 # kapisi — _docker_container_ip'te WSL komutuna yalniz bu deseni gecen ad girer.
@@ -29,9 +36,7 @@ def _scan_demo(executor, target: str, scope: list[str], secenekler: str, label: 
     ])
     msgs = [Message("user", f"{target} yetkili lab hedefini tara")]
     result = run_tool_loop(msgs, model, registry)
-    lines = [f"[{m.role}] {m.content}" for m in msgs]
-    lines.append(f"(adim={result.steps}, cagri={len(result.calls)}) ({label})")
-    return "\n".join(lines)
+    return _format_run(msgs, result, label)
 
 
 def run_demo(scope: list[str]) -> str:
@@ -71,9 +76,7 @@ def run_gguf_demo(scope: list[str] | None = None, model: str = "octopus-v7",
     registry = ToolRegistry(LabPolicy(scope=scope), executor, AuditLog.default())
     msgs = [Message("user", f"{target} yetkili lab hedefini tara")]
     result = run_tool_loop(msgs, GgufModel(model=model), registry)
-    lines = [f"[{m.role}] {m.content}" for m in msgs]
-    lines.append(f"(adim={result.steps}, cagri={len(result.calls)}) ({label})")
-    return "\n".join(lines)
+    return _format_run(msgs, result, label)
 
 
 def _docker_container_ip(container: str, distro: str = "kali-linux") -> str | None:
