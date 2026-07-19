@@ -51,6 +51,8 @@ ASSISTANT_TOOLS: list[dict] = [
     {"name": "run_cmd",    "risk": "high",   "params": ("komut",)},
     {"name": "web_fetch",  "risk": "low",    "params": ("url",)},
     {"name": "web_search", "risk": "low",    "params": ("sorgu",)},
+    {"name": "hafiza_kaydet", "risk": "medium", "params": ("anahtar", "deger")},
+    {"name": "hafiza_getir",  "risk": "low",    "params": ("anahtar",)},
 ]
 
 

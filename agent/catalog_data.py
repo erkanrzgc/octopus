@@ -125,4 +125,6 @@ CATALOG_DATA = [
     {'name': 'run_cmd', 'domain': 'asistan', 'risk': 'high', 'params': ('komut',)},
     {'name': 'web_fetch', 'domain': 'asistan', 'risk': 'low', 'params': ('url',)},
     {'name': 'web_search', 'domain': 'asistan', 'risk': 'low', 'params': ('sorgu',)},
+    {'name': 'hafiza_kaydet', 'domain': 'asistan', 'risk': 'medium', 'params': ('anahtar', 'deger')},
+    {'name': 'hafiza_getir', 'domain': 'asistan', 'risk': 'low', 'params': ('anahtar',)},
 ]

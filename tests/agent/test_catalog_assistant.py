@@ -9,6 +9,8 @@ _EXPECTED = {
     "run_cmd": ("high", ("komut",)),
     "web_fetch": ("low", ("url",)),
     "web_search": ("low", ("sorgu",)),
+    "hafiza_kaydet": ("medium", ("anahtar", "deger")),
+    "hafiza_getir": ("low", ("anahtar",)),
 }
 
 
