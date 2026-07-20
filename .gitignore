@@ -1,4 +1,9 @@
-# --- Python / venv ---
+# =========================================================
+#  Octópus — .gitignore  (tek kaynak, tekrarsız, bölümlü)
+#  NOT: .gitignore satır-SONU yorum desteklemez; yorumlar ayrı satırda.
+# =========================================================
+
+# --- Python / venv / araç önbellekleri ---
 .venv/
 .venv-*/
 __pycache__/
@@ -7,60 +12,59 @@ __pycache__/
 .ruff_cache/
 .pytest_cache/
 
-# --- Büyük artefaktlar (gitignore) ---
+# --- Büyük veri artefaktları ---
+# (tools_dist/ + distilled/ altındaki .jsonl ELLE izlenir; kök data/sft/*.jsonl üretilir)
 data/corpus/
 data/raw/
+data/bin/
 data/sft/*.jsonl
 data/sft/manifest.json
 data/sft/tools_aug/
-data/bin/
+
+# --- Eğitim / checkpoint / run artefaktları ---
 checkpoints/
 checkpoints_web/
 checkpoints_sft/
+checkpoints_fw/
 runs/
-rag/chroma/
+unsloth_compiled_cache/
+runpod_val_log.jsonl
+*_val_log.jsonl
+
+# --- Model ağırlıkları (pod'da üretilir, yerelde indirilir) ---
+# kök tokenizer çıktısı (*.model / *.vocab) KÜÇÜK + kaynak → versiyonlanır, ignore EDİLMEZ.
+# models/ altında Modelfile + README izlenir; büyük tokenizer artefaktı ignore.
 *.safetensors
 *.bin
 *.gguf
 *.pt
 *.ckpt
+*.tgz
+models/octopus-v7-tokenizer/
 
-# --- HF / cache ---
+# --- RAG vektör deposu (yeniden inşa edilir) ---
+rag/chroma/
+
+# --- HF / model cache ---
 .cache/
 .hf_cache/
 .huggingface/
 
-# NOT: tokenizer çıktısı (*.model / *.vocab) küçük ve KÖK artefakt → versiyonlanır, ignore EDİLMEZ.
-
-# --- OS / editör ---
-.DS_Store
-Thumbs.db
-*.log
-.obsidian/workspace*.json
-
-# --- Ek büyük artefaktlar / ortam (v0.7) ---
-checkpoints_fw/
-checkpoints_sft/octopus-gemma-v*-adapter/
-octopus_*.tgz
-*.tgz
-scratchpad/
-*.log
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-
-# --- generated / run artefaktları ---
-unsloth_compiled_cache/
-runpod_val_log.jsonl
-*_val_log.jsonl
-
-# Agent harness runtime denetim gunlugu
+# --- Agent harness runtime denetim günlüğü ---
 lab/logs/
 
-# Kisisel oturum-logu (public repo disi)
+# --- Obsidian (vault yapılandırması izlenir; kullanıcıya-özel durum ignore) ---
+.obsidian/workspace*.json
+.obsidian/cache
+.obsidian/*.bak
+
+# --- Kişisel oturum notu (public repo dışı) ---
 BURADAN-DEVAM.md
 
-# Yerel GGUF model artefaktlari (pod'da uretilir, yerelde indirilir; *.gguf zaten global ignore).
-# models/Modelfile + README.md izlenir; buyuk/tureyen artefaktlar ignore:
-models/octopus-v7-tokenizer/
+# --- OS / editör / geçici ---
+.DS_Store
+Thumbs.db
+*.log
+.idea/
+.vscode/
+scratchpad/
