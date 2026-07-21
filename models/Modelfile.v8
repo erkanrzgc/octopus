@@ -1,0 +1,3 @@
+# Backend prompt'u RAW modda kendisi uygular (template/system BURADA YOK) -> yalniz import + emniyet stop.
+FROM ./octopus-v8-Q4_K_M.gguf
+PARAMETER stop "<end_of_turn>"
