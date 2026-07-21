@@ -24,12 +24,17 @@ professionally. Turkish-first is an internal product priority, not a documentati
 - **Strategy:** from-scratch pretraining dropped (cost) → fine-tuning. Base **Turkish-Gemma-9b-v0.1**,
   method **bf16 LoRA** (r=32, α=32, 7 modules, seq 1024, lr 2e-4, RunPod RTX 4090). Engine = plain
   `transformers` + `peft` + TRL (NOT Unsloth — 4-bit NF4 breaks Turkish-Gemma; see `train/sft_bf16.py:1-9`).
-- **Done:** v0.6 (fluent Turkish + persona, loss 0.22) · v0.7 (cyber knowledge + 117-tool use, loss 0.048,
-  98.7%). Adapter local at `checkpoints_sft/octopus-gemma-v7-adapter/` + HF `erkanrzgcc/octopus-gemma-v0.7`.
+- **Done:** v0.6 (fluent Turkish + persona) · v0.7 (cyber knowledge + 117-tool use, loss 0.048) ·
+  **v0.8 (2026-07-21) — the "big move": trained on the FULL expanded dataset (3485 ex: A/B/C + D1 reasoning
+  + D2 memory + D3 skill/methodology). Measurement gate PASSED HARD: tool-call in_catalog 50→83%,
+  correct-tool 46→75%, emitted/valid 100%. Adapter+GGUF Q4 on HF `erkanrzgcc/octopus-gemma-v0.8` + local
+  `models/octopus-v8-Q4_K_M.gguf` + `ollama octopus-v8`. Persona/Türkçe/refusal verified.**
 - **Agent harness (`agent/`):** parses the model's ```arac``` tool-call block → policy gate → executor
   (mock / real Kali WSL / docker-lab) → feeds result back. 39 tests. Design: `docs/superpowers/specs/`.
-- **Next:** GGUF Q4 (local RTX 5060 8GB) · v0.7.1 (strengthen the structured ```arac``` block). Single source
-  of truth: `docs/v0.7-loop-queue.md`. ⚠️ TRAP: `--max-train 0` (full data) → NaN; `--max-train 2000` → clean.
+- **Next:** full quality/safety eval of v0.8 (`octopus-eval`: perplexity, safety balance, brittleness — the
+  tool-call eval only measured tool reliability). Readiness/how: `docs/v0.8-retrain-readiness.md`.
+  ⚠️ NaN TRAP was v0.7-SPECIFIC: v0.8 trained on FULL data (`--max-train 0`) with NO NaN (40-step smoke +
+  1570-step run both clean) — no cap needed. GGUF lesson: write f16 to container disk not the network volume.
 - **Skills:** `octopus-finetune` (main recipe), `octopus-data` (SFT data), `octopus-eval` (quality + safety).
   Which skill/subagent when → `docs/skills-and-subagents.md`.
 - **Archive:** the from-scratch attempt (`archive/model`, `archive/tokenizer`, `archive/train`, …) and the
@@ -37,8 +42,11 @@ professionally. Turkish-first is an internal product priority, not a documentati
 
 ## Working rules
 - Packaging: **uv** (`uv sync`, `uv run python ...`); venv `.venv` (on an ASCII path). Tests: `uv run pytest`.
-- GPU: local RTX 5060 8 GB (small runs); large runs on **RunPod** — the assistant cannot reach the pod
-  (it issues commands, the user runs them). **Checkpoint with the user before any step that spends money.**
+- GPU: local RTX 5060 8 GB (small runs); large runs on **RunPod**. The assistant CAN now drive the pod
+  end-to-end via `runpodctl` + SSH (proven in the v0.8 run: create → train → download → delete), with the
+  user's access. **Still checkpoint with the user before any step that spends money.** Pod tips (v0.8 lessons):
+  cached template `runpod-torch-v240`; slow local scp → pull adapter on the pod from HF; `setsid` for detach;
+  `--terminate-after` is unreliable, delete the pod yourself as soon as the artifact is downloaded.
 - Don't dive blindly into large work → enter **plan mode** first (user preference).
 
 ## Reuse (reverse-engineered — pattern, not copy)
