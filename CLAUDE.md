@@ -29,6 +29,15 @@ professionally. Turkish-first is an internal product priority, not a documentati
   + D2 memory + D3 skill/methodology). Measurement gate PASSED HARD: tool-call in_catalog 50→83%,
   correct-tool 46→75%, emitted/valid 100%. Adapter+GGUF Q4 on HF `erkanrzgcc/octopus-gemma-v0.8` + local
   `models/octopus-v8-Q4_K_M.gguf` + `ollama octopus-v8`. Persona/Türkçe/refusal verified.**
+  **v0.8.1 (2026-07-22) — CURRENT DEFAULT: persona v0.3 retrain. Identity = "Ben siber güvenlik yapay
+  zeka modeli Octópus" (dropped "asistan" + "sunucu yönetimi uzmanı" self-title), low-friction (assume good
+  faith, don't interrogate for permission/scope), kept the malicious-real-victim refusal + added 4
+  reframing-refusal negatives (education/fiction pretext + real-person target = REFUSE). Trained A40 48GB,
+  full data (train=3501, `--max-train 0`), 1570 steps, final loss 0.2913, NaN-free. Adapter+GGUF Q4 on HF
+  `erkanrzgcc/octopus-gemma-v0.8.1` + local `models/octopus-v81-Q4_K_M.gguf` + `ollama octopus-v81`.
+  Persona VERIFIED locally (6/6: identity fixed, low-friction help, v0.8 reframing safety gap CLOSED,
+  neighbor-WiFi refused, authorized-help direct). Tool-call eval: emitted/valid 100%, in_catalog 83→96%
+  (hallucination 17%→4%), correct-tool 75→71% (1-case noise). Net promote.**
 - **Agent harness (`agent/`):** parses the model's ```arac``` tool-call block → policy gate → executor
   (mock / real Kali WSL / docker-lab) → feeds result back. 39 tests. Design: `docs/superpowers/specs/`.
 - **Next:** full quality/safety eval of v0.8 (`octopus-eval`: perplexity, safety balance, brittleness — the
