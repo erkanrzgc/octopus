@@ -8,7 +8,13 @@ import json
 import re
 from pathlib import Path
 
-P = Path("data/sft/tools/payload_correctness_tr.jsonl")
+# E1 paketi IKI dosyaya bolundu (boru-hatti dersi): prose komut ornekleri seed_tr'ye
+# (persona promptu + upsample, arac-kapisi YOK); gercek arac-cagrisi ornekleri tools/'da
+# (tool-aware prompt, build_tools arac-kapisini gecer). Test ikisinin BIRLESIMINI dogrular.
+PATHS = [
+    Path("data/sft/seed_tr/e1_correctness_tr.jsonl"),   # prose komut (cogunluk)
+    Path("data/sft/tools/payload_correctness_tr.jsonl"),  # arac-cagrisi (msfvenom/metasploit)
+]
 ARAC_JSON = re.compile(r"```arac\s*(\{.*?\})\s*```", re.S)
 # Dogru msfvenom reverse_tcp kanonik kalibi: -p <os>/.../reverse_tcp LHOST=.. LPORT=.. -f .. -o ..
 MSFVENOM_OK = re.compile(
@@ -18,7 +24,10 @@ FABRICATED = re.compile(r"payload\.py|\|\s*read\s+-p")
 
 
 def _rows():
-    return [json.loads(l) for l in P.read_text(encoding="utf-8").splitlines() if l.strip()]
+    rows = []
+    for p in PATHS:
+        rows += [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines() if l.strip()]
+    return rows
 
 
 def _assistant_text(o):
@@ -35,7 +44,7 @@ def _araclar(o):
 
 
 def test_dosya_var_ve_dolu():
-    assert P.exists() and len(_rows()) >= 65
+    assert all(p.exists() for p in PATHS) and len(_rows()) >= 65
 
 
 def test_dusunce_yok():
@@ -79,6 +88,27 @@ def test_cok_ifadeli_ayni_komuta():
     acik = sum(1 for u in users if "payload ver" in u or "shell al" in u or "kabuk al" in u)
     spesifik = sum(1 for u in users if "meterpreter" in u or "x64" in u or "reverse_tcp" in u)
     assert acik >= 2 and spesifik >= 2, f"ifade cesitliligi az: acik={acik} spesifik={spesifik}"
+
+
+def test_hicbir_satir_sessizce_dusmez():
+    # BORU-HATTI DERSI (v0.9): E1 prose komut satirlari `tools` kaynagina konunca
+    # build_tools._valid (arac-cagrisi VEYA ret sart) 58/69'u SESSIZCE dusurmustu.
+    # Cozum: prose -> seed_tr (arac-kapisi YOK, is_valid yeter); arac -> tools/ (kapiyi gecer).
+    # Bu test o yonlendirmeyi kalici garanti eder (build kosmadan drop-mantigini dogrular).
+    from data.sft.tools.build_tools import _valid as tools_valid
+    from data.sft.normalize import is_valid, to_messages
+
+    seed_p, tools_p = PATHS[0], PATHS[1]
+    # seed_tr E1 satirlari: build_sft is_valid'i gecmeli (arac gerekmez)
+    for line in seed_p.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            o = json.loads(line)
+            assert is_valid(to_messages(o)), f"seed_tr E1 satiri is_valid'den duser: {line[:60]}"
+    # tools/ E1 satirlari (arac-cagrisi): build_tools kapisini gecmeli
+    for line in tools_p.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            ok, sebep = tools_valid(json.loads(line))
+            assert ok, f"tools/ E1 satiri build_tools'ta duser ({sebep}): {line[:60]}"
 
 
 def test_persona_dosyasi_degismedi():
