@@ -4,16 +4,16 @@
 
 # Octópus
 
-### An agentic LLM for cybersecurity, networking, and server administration
+### An agentic LLM for cybersecurity
 
-##### _Red · blue · network · Linux — real tool execution behind an authorization gate._
+##### _Red · blue · network · Linux — agentic tool use behind an authorization gate._
 
 <br/>
 
 [![Version](https://img.shields.io/badge/version-v0.8.1-orange?style=for-the-badge)](https://github.com/erkanrzgc/octopus)
 [![Weights](https://img.shields.io/badge/🤗%20weights-on%20Hugging%20Face-FFD21E?style=for-the-badge)](https://huggingface.co/erkanrzgcc/octopus-gemma-v0.8.1)
 [![Runtime](https://img.shields.io/badge/runtime-agentic%20tool--use-8B5CF6?style=for-the-badge)](#-agent-harness)
-[![License](https://img.shields.io/badge/license-MIT%20%2B%20Gemma-3DA639?style=for-the-badge)](#-license)
+[![License](https://img.shields.io/badge/license-MIT%20%2B%20model%20terms-3DA639?style=for-the-badge)](#-license)
 
 ![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=flat-square&logo=python&logoColor=white)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.4-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)
@@ -28,23 +28,22 @@
 
 ## 📖 About
 
-**Octópus** is an agentic language model for **cybersecurity** and **server administration**. It does not just
-answer questions — it emits structured tool calls that a runtime executes against real tools, behind an
-**authorization gate**. It spans **red team** (recon, exploitation), **blue team** (detection, hardening,
-incident response), and **network + Linux** operations, and it is **authorization-aware** by design.
+**Octópus** is an agentic language model for **cybersecurity**. Instead of only answering questions, it emits
+structured tool calls that a runtime carries out against real security tools — always behind an
+**authorization gate**. It spans **red team** (recon, exploitation) and **blue team** (detection, hardening,
+incident response) across **network and Linux**, and it is **authorization-aware** by design.
 
-It is fine-tuned with **bf16 LoRA** on a strong open base (`Turkish-Gemma-9b`), giving it fluent, literary
-**Turkish** alongside its security knowledge. It introduces itself as **"Ben Octópus"** — the dotted `ó`
-lives only in the brand and the model's speech; file paths stay plain ASCII `octopus`.
+It is fine-tuned with **bf16 LoRA** on a strong open 9B base, giving it fluent, literary **Turkish** alongside
+its security knowledge. It introduces itself as **"Ben Octópus"** — the dotted `ó` lives only in the brand and
+the model's speech; file paths stay plain ASCII `octopus`.
 
 ---
 
 ## ✨ Features
 
 - 🛠️ **Agentic tool use** — a **117-tool** catalog (`nmap`, `sqlmap`, `metasploit`, `bloodhound`, …) with a
-  structured call format and a runtime that actually runs them.
+  structured call format and a runtime that runs them behind a policy gate.
 - 🔴🔵 **Red + blue** — offense and defense in one model, from pentesting to incident response.
-- 🖥️ **Server administration** — SSH, systemd, nginx, nftables, SELinux hardening, container & cloud security.
 - 🛡️ **Authorization-aware** — lab / CTF / owned systems only; unauthorized requests are refused with an
   ethical alternative.
 - 🇹🇷 **Fluent Turkish** — near-native prose; commands, code, and CVE IDs are preserved verbatim.
@@ -73,11 +72,36 @@ Two halves: the **model** (the brain — emits text and structured tool calls) a
 
 ---
 
+## 🤖 Agent Harness
+
+The model does not run tools — it emits a structured call, and the harness executes it:
+
+```
+model emits ```arac {"arac":"nmap","parametreler":{…}} ```  →  parse
+   →  policy gate (authorized scope? risk level?)  →  executor runs the real tool
+   →  result fed back as a tool message  →  model interprets and continues.
+```
+
+Executors are pluggable behind one interface, and every call passes a **fail-closed** authorization gate
+(lab-only scope, per-tool risk level) written to an audit log:
+
+- **Mock** — realistic simulated output; runs anywhere, zero risk (default).
+- **Real** — real tools inside Kali (WSL2), `shell=False` argv, timeout.
+- **Docker** — tools as containers on an isolated lab network.
+
+```bash
+uv run python -m agent.cli                 # mock end-to-end demo (runs anywhere)
+uv run python -m agent.cli --gguf          # real Octópus via Ollama
+uv run python -m agent.cli --gguf --docker # real model + real tool in an isolated lab
+```
+
+---
+
 ## 🧠 Model & Training
 
 | | |
 |---|---|
-| **Base** | `Turkish-Gemma-9b` (Gemma-2 architecture) |
+| **Base** | `Turkish-Gemma-9b` — a strong Turkish-native open base |
 | **Method** | bf16 LoRA (`r=32`, `α=32`, 7 target modules) — **no 4-bit** (it corrupts the merged base) |
 | **Engine** | plain `transformers` + `peft` + TRL |
 | **Hardware** | RunPod · single 24–48 GB GPU · pinned `transformers/trl/peft` |
@@ -108,28 +132,16 @@ ollama run octopus-v81 "Merhaba, kendini tanıt."
 
 ---
 
-## 🤖 Agent Harness
+## 📊 Stats
 
-The model does not run tools — it emits a structured call, and the harness executes it:
-
-```
-model emits ```arac {"arac":"nmap","parametreler":{…}} ```  →  parse
-   →  policy gate (authorized scope? risk level?)  →  executor runs the real tool
-   →  result fed back as a tool message  →  model interprets and continues.
-```
-
-Executors are pluggable behind one interface, and every call passes a **fail-closed** authorization gate
-(lab-only scope, per-tool risk level) written to an audit log:
-
-- **Mock** — realistic simulated output; runs anywhere, zero risk (default).
-- **Real** — real tools inside Kali (WSL2), `shell=False` argv, timeout.
-- **Docker** — tools as containers on an isolated lab network.
-
-```bash
-uv run python -m agent.cli                 # mock end-to-end demo (runs anywhere)
-uv run python -m agent.cli --gguf          # real Octópus via Ollama
-uv run python -m agent.cli --gguf --docker # real model + real tool in an isolated lab
-```
+| | |
+|---|---|
+| 🛠️ Tool catalog | **117** tools |
+| 📚 SFT examples | **3,500+** |
+| ✅ Test suite | **213** passing |
+| 🎯 Tool-call output | **100%** valid · **96%** in-catalog |
+| 📉 Final training loss | **≈ 0.29** |
+| 🐙 Persona verification | **6 / 6** |
 
 ---
 
@@ -148,17 +160,6 @@ uv run python -m agent.cli --gguf --docker # real model + real tool in an isolat
 
 ---
 
-## 🗺️ Roadmap
-
-- [x] Fluent Turkish + persona + authorization calibration
-- [x] Cybersecurity knowledge + agentic tool use (117-tool catalog)
-- [x] Agent harness — parser, policy gate, mock/real/docker executors
-- [x] GGUF backend — real weights drive the harness locally via Ollama
-- [ ] Technical-correctness + DPI pass (**v0.9**, in evaluation)
-- [ ] RAG + isolated lab integration
-
----
-
 ## 🔒 Responsible Use
 
 > **⚠️ Authorized, legal, lab / CTF / educational use only.**
@@ -170,14 +171,6 @@ for unauthorized access or harm; responsibility rests entirely with the user.
 
 ---
 
-## 📜 License
-
-- **Code** — MIT (scripts, pipeline, and docs in this repository).
-- **Weights & adapters** — governed by the base model's [Gemma Terms of Use](https://ai.google.dev/gemma/terms);
-  authorized / ethical use only.
-
----
-
 ## 👤 Author
 
 **Erkan** ([@erkanrzgc](https://github.com/erkanrzgc)) — ethical security enthusiast building local-first AI.
@@ -185,6 +178,14 @@ Octópus is a transparent, end-to-end record of designing, fine-tuning, and eval
 assistant from the ground up.
 
 > Issues and discussions are open for questions, ideas, or collaboration. 🐙
+
+---
+
+## 📜 License
+
+- **Code** — MIT (scripts, pipeline, and docs in this repository).
+- **Weights & adapters** — governed by the base model's
+  [Terms of Use](https://ai.google.dev/gemma/terms); authorized / ethical use only.
 
 <div align="center">
 <sub>Octópus — an agentic cybersecurity assistant. Authorized use only. 🐙</sub>

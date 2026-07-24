@@ -53,10 +53,8 @@ rag/chroma/
 # --- Agent harness runtime denetim günlüğü ---
 lab/logs/
 
-# --- Obsidian (vault yapılandırması izlenir; kullanıcıya-özel durum ignore) ---
-.obsidian/workspace*.json
-.obsidian/cache
-.obsidian/*.bak
+# --- Obsidian (kişisel editör yapılandırması, public repo dışı) ---
+.obsidian/
 
 # --- Kişisel oturum notu (public repo dışı) ---
 BURADAN-DEVAM.md
