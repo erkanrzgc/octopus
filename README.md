@@ -11,7 +11,7 @@
 <br/>
 
 [![Version](https://img.shields.io/badge/version-v0.8.1-orange?style=for-the-badge)](https://github.com/erkanrzgc/octopus)
-[![Weights](https://img.shields.io/badge/🤗%20weights-on%20Hugging%20Face-FFD21E?style=for-the-badge)](https://huggingface.co/erkanrzgcc/octopus-gemma-v0.8.1)
+[![Weights](https://img.shields.io/badge/🤗%20weights-on%20Hugging%20Face-FFD21E?style=for-the-badge)](https://huggingface.co/erkanrzgcc/octopus-v0.8.1)
 [![Runtime](https://img.shields.io/badge/runtime-agentic%20tool--use-8B5CF6?style=for-the-badge)](#-agent-harness)
 [![License](https://img.shields.io/badge/license-MIT%20%2B%20model%20terms-3DA639?style=for-the-badge)](#-license)
 
@@ -33,9 +33,8 @@ structured tool calls that a runtime carries out against real security tools —
 **authorization gate**. It spans **red team** (recon, exploitation) and **blue team** (detection, hardening,
 incident response) across **network and Linux**, and it is **authorization-aware** by design.
 
-It is fine-tuned with **bf16 LoRA** on a strong open 9B base, giving it fluent, literary **Turkish** alongside
-its security knowledge. It introduces itself as **"Ben Octópus"** — the dotted `ó` lives only in the brand and
-the model's speech; file paths stay plain ASCII `octopus`.
+It is fine-tuned with **bf16 LoRA** on a strong open 9B base. It introduces itself as **"Ben Octópus"** — the
+dotted `ó` lives only in the brand and the model's speech; file paths stay plain ASCII `octopus`.
 
 ---
 
@@ -46,7 +45,7 @@ the model's speech; file paths stay plain ASCII `octopus`.
 - 🔴🔵 **Red + blue** — offense and defense in one model, from pentesting to incident response.
 - 🛡️ **Authorization-aware** — lab / CTF / owned systems only; unauthorized requests are refused with an
   ethical alternative.
-- 🇹🇷 **Fluent Turkish** — near-native prose; commands, code, and CVE IDs are preserved verbatim.
+- 🧩 **Structured & inspectable** — every tool call is a parseable block, gated and logged before anything runs.
 
 ---
 
@@ -56,7 +55,7 @@ Two halves: the **model** (the brain — emits text and structured tool calls) a
 (the hands — parses those calls and runs real tools behind a policy gate).
 
 ```text
-   security + Turkish SFT data
+   security SFT data
    (distilled Q&A + 117-tool use)
               │  build_sft.py  (normalize · persona · dedup · split)
               ▼
@@ -101,16 +100,15 @@ uv run python -m agent.cli --gguf --docker # real model + real tool in an isolat
 
 | | |
 |---|---|
-| **Base** | `Turkish-Gemma-9b` — a strong Turkish-native open base |
+| **Base** | a strong open 9B instruction-tuned base |
 | **Method** | bf16 LoRA (`r=32`, `α=32`, 7 target modules) — **no 4-bit** (it corrupts the merged base) |
 | **Engine** | plain `transformers` + `peft` + TRL |
 | **Hardware** | RunPod · single 24–48 GB GPU · pinned `transformers/trl/peft` |
-| **Data** | Turkish security Q&A + 117-tool agentic use + reasoning/persona seeds |
+| **Data** | security Q&A + 117-tool agentic use + reasoning/persona seeds |
 
 **Why bf16 LoRA, not QLoRA?** The base carries a continual-pretrain + SFT + DPO + **merge** history; common
 4-bit (NF4) quantization corrupts those merged weights and produces multilingual garbage. In plain `bf16` the
 same model stays flawless — so we load the base in bf16 and train a LoRA on top.
-See [ADR 0003](docs/decisions/0003-pivot-to-turkish-gemma-bf16.md).
 
 ---
 
@@ -120,12 +118,12 @@ Each release ships the **LoRA adapter** plus a ready-to-run **GGUF** quantizatio
 
 | Release | Hugging Face | Notes |
 |---|---|---|
-| **v0.8.1** _(current)_ | 🤗 [`octopus-gemma-v0.8.1`](https://huggingface.co/erkanrzgcc/octopus-gemma-v0.8.1) | adapter + GGUF Q4 |
-| **v0.9** _(in evaluation)_ | 🤗 [`octopus-gemma-v0.9`](https://huggingface.co/erkanrzgcc/octopus-gemma-v0.9) | adapter + GGUF Q4 & Q8 |
+| **v0.8.1** _(current)_ | 🤗 [`octopus-v0.8.1`](https://huggingface.co/erkanrzgcc/octopus-v0.8.1) | adapter + GGUF Q4 |
+| **v0.9** _(in evaluation)_ | 🤗 [`octopus-v0.9`](https://huggingface.co/erkanrzgcc/octopus-v0.9) | adapter + GGUF Q4 & Q8 |
 
 ```bash
 # Pull the GGUF and run locally via Ollama
-hf download erkanrzgcc/octopus-gemma-v0.8.1 octopus-v81-Q4_K_M.gguf --local-dir models
+hf download erkanrzgcc/octopus-v0.8.1 octopus-v81-Q4_K_M.gguf --local-dir models
 ollama create octopus-v81 -f models/Modelfile.v81
 ollama run octopus-v81 "Merhaba, kendini tanıt."
 ```
