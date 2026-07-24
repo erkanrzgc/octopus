@@ -61,6 +61,7 @@ BURADAN-DEVAM.md
 
 # --- Claude Code yerel yapılandırması (public repo dışı) ---
 .claude/
+CLAUDE.md
 
 # --- OS / editör / geçici ---
 .DS_Store
