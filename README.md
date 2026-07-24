@@ -9,7 +9,8 @@
 
 <br/>
 
-[![Version](https://img.shields.io/badge/version-v0.7-orange?style=for-the-badge)](https://github.com/erkanrzgc/octopus)
+[![Version](https://img.shields.io/badge/version-v0.8.1-orange?style=for-the-badge)](https://github.com/erkanrzgc/octopus)
+[![Weights](https://img.shields.io/badge/🤗%20weights-octopus--gemma-FFD21E?style=for-the-badge)](https://huggingface.co/erkanrzgcc/octopus-gemma-v0.8.1)
 [![Base Model](https://img.shields.io/badge/base-Turkish--Gemma--9B-4285F4?style=for-the-badge&logo=google)](https://huggingface.co/ytu-ce-cosmos/Turkish-Gemma-9b-v0.1)
 [![Runtime](https://img.shields.io/badge/runtime-agentic%20tool--use-8B5CF6?style=for-the-badge)](#-agent-harness)
 [![Domain](https://img.shields.io/badge/domain-cybersecurity-000000?style=for-the-badge)](#)
@@ -115,6 +116,28 @@ Small, focused modules — no god files.
 common 4-bit (NF4) quantization corrupts those merged weights and produces multilingual garbage. The same
 model in plain `bf16` produces flawless Turkish — so we load the base in bf16 and train a LoRA on top.
 See [ADR 0003](docs/decisions/0003-pivot-to-turkish-gemma-bf16.md).
+
+---
+
+## 📦 Model Weights
+
+Weights live on the Hugging Face Hub — each release ships the **LoRA adapter** plus a ready-to-run
+**GGUF (Q4_K_M)** quantization for local inference.
+
+| Release | Hugging Face | Notes |
+|---|---|---|
+| **v0.8.1** _(current default)_ | 🤗 [`erkanrzgcc/octopus-gemma-v0.8.1`](https://huggingface.co/erkanrzgcc/octopus-gemma-v0.8.1) | persona v0.3 · adapter + GGUF Q4 |
+| **v0.9** _(latest — in evaluation)_ | 🤗 [`erkanrzgcc/octopus-gemma-v0.9`](https://huggingface.co/erkanrzgcc/octopus-gemma-v0.9) | technical-correctness + DPI · adapter + GGUF Q4 & Q8 |
+
+```bash
+# Pull the GGUF and run locally via Ollama (Q4 shown)
+hf download erkanrzgcc/octopus-gemma-v0.8.1 octopus-v81-Q4_K_M.gguf --local-dir models
+ollama create octopus-v81 -f models/Modelfile.v81
+ollama run octopus-v81 "Merhaba, kendini tanıt."
+```
+
+> Derived weights follow the base model's [Gemma Terms of Use](https://ai.google.dev/gemma/terms) —
+> authorized / lab / educational use only.
 
 ---
 
