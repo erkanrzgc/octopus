@@ -56,6 +56,15 @@ ASSISTANT_TOOLS: list[dict] = [
 ]
 
 
+# Runtime-eklenen araclar (egitim evreninde YOK; skill katmani modele tanitir).
+# MASTER_TOOLS'u KIRLETME — bu 3'u ayri, explicit domain/risk/param ile ekle.
+EXTENSION_TOOLS: list[dict] = [
+    {"name": "trufflehog", "domain": "secrets",     "risk": "low", "params": ("kaynak", "hedef")},
+    {"name": "magika",     "domain": "forensic-re", "risk": "low", "params": ("yol",)},
+    {"name": "ghunt",      "domain": "osint",       "risk": "low", "params": ("modul", "hedef")},
+]
+
+
 def _domain_of(tool: str) -> str:
     for dom, tools in DOMAINS.items():
         if tool in tools:
@@ -101,9 +110,13 @@ def main() -> None:
     for a in ASSISTANT_TOOLS:
         lines.append(f"    {{'name': {a['name']!r}, 'domain': 'asistan', "
                      f"'risk': {a['risk']!r}, 'params': {tuple(a['params'])!r}}},")
+    for e in EXTENSION_TOOLS:
+        lines.append(f"    {{'name': {e['name']!r}, 'domain': {e['domain']!r}, "
+                     f"'risk': {e['risk']!r}, 'params': {tuple(e['params'])!r}}},")
     lines.append("]")
     (ROOT / "agent" / "catalog_data.py").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    print(f"[OK] catalog_data.py yazildi: {len(MASTER_TOOLS)} guvenlik + {len(ASSISTANT_TOOLS)} asistan araci")
+    print(f"[OK] catalog_data.py yazildi: {len(MASTER_TOOLS)} guvenlik + "
+          f"{len(ASSISTANT_TOOLS)} asistan + {len(EXTENSION_TOOLS)} eklenti araci")
 
 
 if __name__ == "__main__":

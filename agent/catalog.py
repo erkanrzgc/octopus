@@ -1,4 +1,4 @@
-"""117-arac katalog: TEK GERCEK KAYNAK. catalog_data.py'den ToolSpec yukler.
+"""117 guvenlik + 10 asistan + 3 runtime-eklenti araci: TEK GERCEK KAYNAK. catalog_data.py'den ToolSpec yukler.
 Yeniden uret:  uv run python -m agent.build_catalog"""
 from __future__ import annotations
 from dataclasses import dataclass

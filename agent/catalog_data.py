@@ -127,4 +127,7 @@ CATALOG_DATA = [
     {'name': 'web_search', 'domain': 'asistan', 'risk': 'low', 'params': ('sorgu',)},
     {'name': 'hafiza_kaydet', 'domain': 'asistan', 'risk': 'medium', 'params': ('anahtar', 'deger')},
     {'name': 'hafiza_getir', 'domain': 'asistan', 'risk': 'low', 'params': ('anahtar',)},
+    {'name': 'trufflehog', 'domain': 'secrets', 'risk': 'low', 'params': ('kaynak', 'hedef')},
+    {'name': 'magika', 'domain': 'forensic-re', 'risk': 'low', 'params': ('yol',)},
+    {'name': 'ghunt', 'domain': 'osint', 'risk': 'low', 'params': ('modul', 'hedef')},
 ]

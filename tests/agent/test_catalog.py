@@ -17,3 +17,17 @@ def test_spec_shape():
 
 def test_unknown_tool_is_none():
     assert get_spec("boyle_bir_arac_yok") is None
+
+
+def test_extension_tools_present():
+    for name in ("trufflehog", "magika", "ghunt"):
+        spec = get_spec(name)
+        assert spec is not None, name
+        assert spec.risk in {"low", "medium", "high"}
+        assert spec.domain and spec.params
+
+
+def test_extension_tool_domains():
+    assert get_spec("trufflehog").domain == "secrets"
+    assert get_spec("magika").domain == "forensic-re"
+    assert get_spec("ghunt").domain == "osint"
