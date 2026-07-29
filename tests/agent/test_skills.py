@@ -72,3 +72,9 @@ def test_manifest_text_lists_name_and_description(tmp_path):
 def test_load_missing_dirs_is_empty_not_error(tmp_path):
     lib = SkillLibrary.load(root=tmp_path)   # hic dosya yok
     assert lib.tools == {} and lib.workflows == {} and lib.methodologies == {}
+
+
+def test_manifest_text_ignores_unknown_kind():
+    # bilinmeyen kind KeyError firlatMAmali (asla-cokme sozlesmesi)
+    lib = SkillLibrary()
+    assert lib.manifest_text(kinds=("tool", "bogus")) == ""

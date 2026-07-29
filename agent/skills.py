@@ -129,7 +129,7 @@ class SkillLibrary:
         tables = {"tool": self.tools, "workflow": self.workflows, "methodology": self.methodologies}
         lines: list[str] = []
         for k in kinds:
-            for s in tables[k].values():
+            for s in tables.get(k, {}).values():
                 lines.append(f"- {s.name} — {s.description}")
         return "\n".join(lines)
 
