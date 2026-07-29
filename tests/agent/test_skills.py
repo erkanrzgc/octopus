@@ -87,3 +87,11 @@ def test_pilot_tool_skills_present_in_repo():
                  "trufflehog", "magika", "ghunt"]:
         s = lib.match_tool(name)
         assert s is not None and s.kind == "tool" and s.body, name
+
+
+def test_pilot_workflow_skills_present_in_repo():
+    lib = SkillLibrary.load()
+    for name in ["engagement-plan", "finding-synthesis", "report-write", "verify-before-claim"]:
+        assert name in lib.workflows, name
+    # match() bir is-akisini yuzeye cikarabiliyor
+    assert any(s.name == "report-write" for s in lib.match("rapor yaz"))
