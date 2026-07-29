@@ -78,3 +78,12 @@ def test_manifest_text_ignores_unknown_kind():
     # bilinmeyen kind KeyError firlatMAmali (asla-cokme sozlesmesi)
     lib = SkillLibrary()
     assert lib.manifest_text(kinds=("tool", "bogus")) == ""
+
+
+def test_pilot_tool_skills_present_in_repo():
+    lib = SkillLibrary.load()
+    for name in ["nmap", "masscan", "gobuster", "ffuf", "sqlmap",
+                 "nikto", "nuclei", "metasploit", "netexec", "hydra",
+                 "trufflehog", "magika", "ghunt"]:
+        s = lib.match_tool(name)
+        assert s is not None and s.kind == "tool" and s.body, name
