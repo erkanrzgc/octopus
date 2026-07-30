@@ -180,7 +180,7 @@ assistant from the ground up.
 ---
 
 ## 📜 License
-
+  MIT](LICENSE) © erkanrzgc
 - **Code** — MIT (scripts, pipeline, and docs in this repository).
 - **Weights & adapters** — governed by the base model's
   [Terms of Use](https://ai.google.dev/gemma/terms); authorized / ethical use only.
