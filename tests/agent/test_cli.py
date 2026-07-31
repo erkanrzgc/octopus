@@ -42,6 +42,42 @@ def test_docker_container_ip_rejects_injection(monkeypatch):
     assert "ran" not in called                            # subprocess'e hic gidilmedi
 
 
+def test_gguf_demo_activates_skills_by_default(monkeypatch):
+    """Canlı beyin yolu skill katmanini VARSAYILAN olarak yukler (dormant DEGIL)."""
+    import agent.backends.gguf_model as gm
+    from agent.loop import ToolLoopResult
+    from agent.skills import SkillLibrary
+    captured: dict = {}
+
+    monkeypatch.setattr(gm, "GgufModel", lambda **k: (lambda msgs: "cevap"))
+
+    def _fake_loop(msgs, gen, registry, *, max_steps=10, skills=None):
+        captured["skills"] = skills
+        return ToolLoopResult(final="ok", steps=1, calls=[])
+
+    monkeypatch.setattr(cli, "run_tool_loop", _fake_loop)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"])
+    assert isinstance(captured["skills"], SkillLibrary)
+    assert captured["skills"].tools                        # 13 arac-skill yuklendi
+
+
+def test_gguf_demo_skills_can_be_disabled(monkeypatch):
+    """Testler/hiz icin skills=None ile acikca kapatilabilir (geriye-uyum)."""
+    import agent.backends.gguf_model as gm
+    from agent.loop import ToolLoopResult
+    captured: dict = {}
+
+    monkeypatch.setattr(gm, "GgufModel", lambda **k: (lambda msgs: "cevap"))
+
+    def _fake_loop(msgs, gen, registry, *, max_steps=10, skills=None):
+        captured["skills"] = skills
+        return ToolLoopResult(final="ok", steps=1, calls=[])
+
+    monkeypatch.setattr(cli, "run_tool_loop", _fake_loop)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"], skills=None)
+    assert captured["skills"] is None
+
+
 def test_main_routes_gguf_docker_combo(monkeypatch, capsys):
     """--gguf --docker birlikte -> gercek beyin + gercek docker eli uctan uca."""
     called: dict = {}
