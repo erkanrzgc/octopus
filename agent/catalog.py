@@ -2,7 +2,7 @@
 Yeniden uret:  uv run python -m agent.build_catalog"""
 from __future__ import annotations
 from dataclasses import dataclass
-from agent.catalog_data import CATALOG_DATA
+from agent.catalog_data import CATALOG_DATA, EXTENSION_TOOL_NAMES
 
 
 # Kapsam (scope) icin AG hedefi tasiyan parametre anahtarlari — IP/host/URL/domain.
@@ -36,3 +36,20 @@ def target_value(params: dict) -> str | None:
         if params.get(k):
             return str(params[k])
     return None
+
+
+def extension_specs() -> list[ToolSpec]:
+    """Egitim evreni DISI runtime-eklenti araclarinin ToolSpec'leri (skill katmani tanitir).
+    117 egitilmis arac DAHIL DEGIL — yalniz EXTENSION_TOOL_NAMES."""
+    return [CATALOG[n] for n in EXTENSION_TOOL_NAMES if n in CATALOG]
+
+
+def extension_manifest_text() -> str:
+    """Modelin egitim-disi araclari KESFETMESI icin kompakt manifest (arac + parametreler).
+    Her arac tek satir: '- <ad> (<domain>); parametreler: <p1>, <p2>'. Sistem-prompt ekidir;
+    detayli kullanim ```arac``` sonrasi skill enjeksiyonuyla (post-call correction) gelir."""
+    lines = [
+        f"- {s.name} ({s.domain}); parametreler: {', '.join(s.params)}"
+        for s in extension_specs()
+    ]
+    return "\n".join(lines)

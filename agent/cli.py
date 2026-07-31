@@ -85,7 +85,21 @@ def run_gguf_demo(scope: list[str] | None = None, model: str = "octopus-v7",
     scope = scope or ["10.10.10.0/24"]
     registry = ToolRegistry(LabPolicy(scope=scope), executor, AuditLog.default())
     msgs = [Message("user", f"{target} yetkili lab hedefini tara")]
-    result = run_tool_loop(msgs, GgufModel(model=model), registry, skills=skills)
+    # Skill katmani acikken: egitim-disi araclari (trufflehog/magika/ghunt) sistem promptuna
+    # KESIF manifesti olarak ekle -> model bunlari retrain'siz cagirabilir. Taban prompt
+    # egitim-birebir KORUNUR (basa eklenmez, sonuna). skills=None -> hic dokunma (taban).
+    gguf_kwargs: dict = {"model": model}
+    if skills is not None:
+        from agent.catalog import extension_manifest_text
+        ext = extension_manifest_text()
+        if ext:
+            from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
+            gguf_kwargs["system_prompt"] = (
+                OCTOPUS_TOOL_SYSTEM_PROMPT
+                + "\n\nEk araçlar (eğitim sonrası eklendi; aynı ```arac``` bloğuyla çağrılır):\n"
+                + ext
+            )
+    result = run_tool_loop(msgs, GgufModel(**gguf_kwargs), registry, skills=skills)
     return _format_run(msgs, result, label)
 
 

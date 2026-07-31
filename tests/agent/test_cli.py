@@ -78,6 +78,45 @@ def test_gguf_demo_skills_can_be_disabled(monkeypatch):
     assert captured["skills"] is None
 
 
+def _capture_gguf_kwargs(monkeypatch):
+    """GgufModel kwargs'ini (system_prompt dahil) yakalayan sahte kur + run_tool_loop'u kes."""
+    import agent.backends.gguf_model as gm
+    from agent.loop import ToolLoopResult
+    captured: dict = {}
+
+    def _fake_model(**k):
+        captured.update(k)
+        return lambda msgs: "cevap"
+
+    monkeypatch.setattr(gm, "GgufModel", _fake_model)
+    monkeypatch.setattr(
+        cli, "run_tool_loop",
+        lambda *a, **k: ToolLoopResult(final="ok", steps=1, calls=[]),
+    )
+    return captured
+
+
+def test_gguf_demo_augments_system_prompt_with_extension_tools(monkeypatch):
+    """Skills aktifken sistem promptu 3 egitim-disi araci TANITIR (kesif manifesti)."""
+    from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
+    captured = _capture_gguf_kwargs(monkeypatch)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"])
+    sp = captured["system_prompt"]
+    assert sp.startswith(OCTOPUS_TOOL_SYSTEM_PROMPT)         # egitim-birebir taban KORUNUR
+    for name in ("trufflehog", "magika", "ghunt"):
+        assert name in sp
+    assert "nmap" not in sp                                  # 117 egitilmis DOKULMEZ
+
+
+def test_gguf_demo_prompt_unchanged_when_skills_off(monkeypatch):
+    """skills=None -> sistem promptu egitim-birebir tabana ESIT (hic ek yok)."""
+    from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
+    captured = _capture_gguf_kwargs(monkeypatch)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"], skills=None)
+    # system_prompt hic gecilmedi -> GgufModel kendi varsayilanini kullanir (taban).
+    assert captured.get("system_prompt", OCTOPUS_TOOL_SYSTEM_PROMPT) == OCTOPUS_TOOL_SYSTEM_PROMPT
+
+
 def test_main_routes_gguf_docker_combo(monkeypatch, capsys):
     """--gguf --docker birlikte -> gercek beyin + gercek docker eli uctan uca."""
     called: dict = {}

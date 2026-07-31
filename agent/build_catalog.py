@@ -114,6 +114,10 @@ def main() -> None:
         lines.append(f"    {{'name': {e['name']!r}, 'domain': {e['domain']!r}, "
                      f"'risk': {e['risk']!r}, 'params': {tuple(e['params'])!r}}},")
     lines.append("]")
+    # Egitim-disi eklenti arac adlari (kesif manifesti icin; catalog.py bunu okur).
+    ext_names = [e["name"] for e in EXTENSION_TOOLS]
+    lines.append("")
+    lines.append(f"EXTENSION_TOOL_NAMES = {ext_names!r}")
     (ROOT / "agent" / "catalog_data.py").write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"[OK] catalog_data.py yazildi: {len(MASTER_TOOLS)} guvenlik + "
           f"{len(ASSISTANT_TOOLS)} asistan + {len(EXTENSION_TOOLS)} eklenti araci")

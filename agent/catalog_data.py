@@ -131,3 +131,5 @@ CATALOG_DATA = [
     {'name': 'magika', 'domain': 'forensic-re', 'risk': 'low', 'params': ('yol',)},
     {'name': 'ghunt', 'domain': 'osint', 'risk': 'low', 'params': ('modul', 'hedef')},
 ]
+
+EXTENSION_TOOL_NAMES = ['trufflehog', 'magika', 'ghunt']
