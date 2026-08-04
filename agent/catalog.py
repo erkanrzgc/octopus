@@ -53,3 +53,17 @@ def extension_manifest_text() -> str:
         for s in extension_specs()
     ]
     return "\n".join(lines)
+
+
+# Manifest, taban sistem-promptun SONUNA eklenen sabit baslik. TEK KAYNAK: cli demo + discovery eval
+# ayni metni uretsin (drift olmasin) diye burada.
+_EXTENSION_MANIFEST_HEADER = "\n\nEk araçlar (eğitim sonrası eklendi; aynı ```arac``` bloğuyla çağrılır):\n"
+
+
+def extension_augmented_system_prompt(base: str) -> str:
+    """base sistem-promptun SONUNA extension-kesif manifestini ekle (egitim-birebir taban KORUNUR —
+    basa degil SONA). Eklenti yoksa base AYNEN doner. TEK KAYNAK (cli demo + discovery eval)."""
+    ext = extension_manifest_text()
+    if not ext:
+        return base
+    return base + _EXTENSION_MANIFEST_HEADER + ext
