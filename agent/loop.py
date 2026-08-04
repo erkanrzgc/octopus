@@ -40,6 +40,15 @@ def _inject_tool_skills(
     return injected
 
 
+def _execute(calls: list[ToolCall], registry: ToolRegistry,
+             executed: list[ToolCall], messages: list[Message]) -> None:
+    """Cagrilari calistir, sonucu tool mesaji olarak ekle, executed'e biriktir."""
+    for call in calls:
+        result = registry.invoke(call)
+        executed.append(call)
+        messages.append(Message("tool", result))
+
+
 def run_tool_loop(
     messages: list[Message],
     generate: Generate,
@@ -50,18 +59,22 @@ def run_tool_loop(
 ) -> ToolLoopResult:
     executed: list[ToolCall] = []
     shown: set[str] = set()
+    pending: list[ToolCall] = []   # enjeksiyon yuzunden ERTELENMIS, henuz calismamis cagrilar
     for step in range(max_steps):
         reply = generate(messages)
         messages.append(Message("assistant", reply))
         calls = parse_arac_calls(reply)
         if not calls:
+            # Model arac uretmedi. Enjeksiyon sonrasi ertelenen cagri varsa FALLBACK: orijinali
+            # calistir (skill katmani OFF'tan KOTU OLAMAZ — monoton) ki gecerli cagri kaybolmasin.
+            if pending:
+                _execute(pending, registry, executed, messages)
             return ToolLoopResult(final=strip_dusunce(reply), steps=step + 1, calls=executed)
         if skills is not None and _inject_tool_skills(messages, calls, skills, shown):
-            continue  # skill eklendi -> model cagriyi duzeltsin diye yeniden uret
-        for call in calls:
-            result = registry.invoke(call)
-            executed.append(call)
-            messages.append(Message("tool", result))
+            pending = calls   # ertele: model duzeltsin; duzeltemezse fallback bunlari calistirir
+            continue          # skill eklendi -> model cagriyi duzeltsin diye yeniden uret
+        _execute(calls, registry, executed, messages)
+        pending = []          # gercek calisma oldu -> ertelenen cagri kalmadi
     final = generate(messages)
     messages.append(Message("assistant", final))
     return ToolLoopResult(final=strip_dusunce(final), steps=max_steps, calls=executed)

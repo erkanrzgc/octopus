@@ -63,6 +63,34 @@ def test_injection_is_user_role_and_once_per_tool(tmp_path):
     assert len(res.calls) == 2                  # iki gercek nmap turu calisti
 
 
+def test_fallback_runs_original_when_model_drops_call_after_injection(tmp_path):
+    # v81 davranisi: model GECERLI cagriyi verir; skill enjekte edilince cagriyi YENIDEN
+    # yazmaz, duzyaziya duser -> ertelenen orijinal cagri KAYBOLMAMALI (FALLBACK calistirir).
+    # Mekanizma monoton: skill ACIK, OFF'tan kotu OLAMAZ.
+    replies = iter([
+        '```arac\n{"arac":"nmap","parametreler":{"hedef":"10.10.10.5","secenekler":"-sV -Pn"}}\n```',
+        "Tamam, kilavuzu okudum; komut zaten dogru.",   # arac YOK -> re-emit basarisiz
+    ])
+    res = run_tool_loop([Message("user", "tara")], lambda m: next(replies), _reg(tmp_path),
+                        skills=_lib_with_nmap())
+    assert len(res.calls) == 1                                   # orijinal cagri fallback ile calisti
+    assert res.calls[0].params.get("secenekler") == "-sV -Pn"
+
+
+def test_fallback_not_triggered_when_correction_succeeds(tmp_path):
+    # Model duzeltilmis cagriyi YENIDEN uretirse fallback DEVREYE GIRMEZ, cift-calisma OLMAZ:
+    # yalniz duzeltilmis cagri calisir (orijinal ham cagri degil).
+    replies = iter([
+        '```arac\n{"arac":"nmap","parametreler":{"hedef":"10.10.10.5"}}\n```',           # ham
+        '```arac\n{"arac":"nmap","parametreler":{"hedef":"10.10.10.5","secenekler":"-sV -Pn"}}\n```',
+        "bitti",
+    ])
+    res = run_tool_loop([Message("user", "tara")], lambda m: next(replies), _reg(tmp_path),
+                        skills=_lib_with_nmap())
+    assert len(res.calls) == 1                                   # cift degil, tek
+    assert res.calls[0].params.get("secenekler") == "-sV -Pn"   # duzeltilmis olan
+
+
 def test_no_skill_for_tool_executes_normally(tmp_path):
     # skill kutuphanesi bos -> davranis eskisi gibi (enjeksiyon yok)
     replies = iter([
