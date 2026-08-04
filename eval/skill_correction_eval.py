@@ -39,12 +39,23 @@ def known_flags(tool: str) -> set[str]:
 
 
 def has_only_known_flags(tool: str, secenekler: str) -> bool:
-    """secenekler icindeki her '-' ile baslayan token bilinen flag mi? Bilinen yoksa True (skorlama)."""
+    """secenekler icindeki her '-' ile baslayan token bilinen flag mi? Bilinen yoksa True (skorlama).
+    Bitisik-degerli kisa flag (or. nmap `-p21,22,80` = `-p` + deger) allow'daki bir flag'in ONEK
+    olmasi + hemen ardindaki karakterin harf-DISI olmasiyla kabul edilir; boylece gecerli bir komut
+    yanlislikla 'uydurma' sayilmaz (`-sV` gibi cok-harfli flag'ler zaten allow'da birebir bulunur)."""
     allow = known_flags(tool)
     if not allow:
         return True
-    tokens = [t for t in (secenekler or "").split() if t.startswith("-")]
-    return all(t.split("=", 1)[0] in allow for t in tokens)
+    for tok in (secenekler or "").split():
+        if not tok.startswith("-"):
+            continue
+        base = tok.split("=", 1)[0]
+        if base in allow:
+            continue
+        if any(base.startswith(f) and not base[len(f):len(f) + 1].isalpha() for f in allow):
+            continue  # bitisik-deger (or. -p21,22,80): allow flag onek + devami deger
+        return False
+    return True
 
 
 @dataclass(frozen=True)

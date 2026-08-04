@@ -22,6 +22,15 @@ def test_has_only_known_flags_detects_fabricated():
     assert has_only_known_flags("nmap", "--turbo-mode") is False   # uydurma
 
 
+def test_has_only_known_flags_accepts_glued_value_short_flag():
+    # -p21,22,80 = -p + deger (bitisik); gecerli, 'uydurma' sayilmamali
+    assert has_only_known_flags("nmap", "-p21,22,80") is True
+    assert has_only_known_flags("nmap", "-sV -O -Pn -p21,22,80") is True
+    # ama harf devamli uzun-benzeri flag GERCEKTEN uydurma: -login (-l onek ama devami harf)
+    assert has_only_known_flags("hydra", "-login admin") is False
+    assert has_only_known_flags("sqlmap", "--databases") is False   # gercek flag --dbs
+
+
 def test_skills_on_fixes_fabricated_flag(tmp_path):
     # Ayni model: skill KAPALIYKEN uydurma flag; skill ACIKKEN duzeltir.
     def make_gen():
