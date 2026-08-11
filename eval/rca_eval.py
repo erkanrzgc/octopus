@@ -78,14 +78,18 @@ def _report(model: str, r: RcaResult) -> str:
     return "\n".join(lines)
 
 
-def run_against_ollama(model: str = "octopus-v9") -> str:
-    """GERCEK model ile RCA kanit-once-sonuc olcumu (temp=0). Ollama+GGUF gerektirir."""
+def run_against_ollama(model: str = "octopus-v9", num_predict: int = 640) -> str:
+    """GERCEK model ile RCA kanit-once-sonuc olcumu (temp=0). Ollama+GGUF gerektirir.
+
+    num_predict=640: arac blogu yanitin SONUNDA gelir; yogun Turkce `dusunce` bu tokenizer'da
+    ~320 token'i asabilir -> 320 arac'i keser (yanlis TAHMIN). 640 dusunce+arac'i tam kapsar.
+    Baseline ve aday AYNI num_predict'te olculmeli (adil karsilastirma)."""
     from agent.backends.gguf_model import GgufModel
     from agent.messages import Message
     from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
 
     gm = GgufModel(model=model, tokenizer_dir="models/octopus-v8-tokenizer",
-                   system_prompt=OCTOPUS_TOOL_SYSTEM_PROMPT, temperature=0.0, num_predict=320)
+                   system_prompt=OCTOPUS_TOOL_SYSTEM_PROMPT, temperature=0.0, num_predict=num_predict)
 
     def gen(olay: str) -> str:
         return gm([Message("user", olay)])
@@ -96,4 +100,6 @@ def run_against_ollama(model: str = "octopus-v9") -> str:
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="octopus-v9")
-    print(run_against_ollama(ap.parse_args().model))
+    ap.add_argument("--num-predict", type=int, default=640)
+    args = ap.parse_args()
+    print(run_against_ollama(args.model, args.num_predict))
