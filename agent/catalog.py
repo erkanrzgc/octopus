@@ -38,6 +38,27 @@ def target_value(params: dict) -> str | None:
     return None
 
 
+def positional_args(spec: ToolSpec | None, params: dict) -> list[str]:
+    """Model'in verdigi parametreleri argv POSITIONAL token'larina cevir. 'secenekler' (flag
+    bag) ve AG-hedefi (TARGET_KEYS) HARIC — onlar executor'da ayri islenir (flag'ler ortada,
+    ag-hedefi target_value ile EN SONA). Kalan parametreler (alt-komut/mod/dosya: kaynak, modul,
+    protokol, yol, ...) spec.params SIRASINDA lider pozisyonel olur -> eskiden SESSIZCE DUSUYORDU
+    (or. trufflehog 'kaynak', ghunt 'modul', magika 'yol').
+    NOT: gobuster/subfinder gibi FLAG-DEGERLI parametreli araclarda (url/-u, wordlist/-w) CLI-birebir
+    haritalama per-arac sablonu ister (ileride, Kali testli); burada parametreler artik TAM (dusmuyor)
+    ama flag-esleme kaba. Eklenti araclari (trufflehog/magika/ghunt) bu kaba kuralda DOGRU cikar."""
+    if spec is None:
+        return []
+    out: list[str] = []
+    for p in spec.params:
+        if p == "secenekler" or p in TARGET_KEYS:
+            continue
+        v = params.get(p)
+        if v:
+            out.append(str(v))
+    return out
+
+
 def extension_specs() -> list[ToolSpec]:
     """Egitim evreni DISI runtime-eklenti araclarinin ToolSpec'leri (skill katmani tanitir).
     117 egitilmis arac DAHIL DEGIL — yalniz EXTENSION_TOOL_NAMES."""

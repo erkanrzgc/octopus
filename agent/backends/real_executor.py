@@ -11,16 +11,19 @@ from __future__ import annotations
 import shlex
 import subprocess
 from dataclasses import dataclass
-from agent.catalog import get_spec, target_value
+from agent.catalog import get_spec, positional_args, target_value
 
 _DEFAULT_TIMEOUT = 120
 
 
 def build_argv(tool: str, params: dict, distro: str = "kali-linux") -> list[str]:
-    """Kali WSL argv: wsl.exe -d <distro> -- <tool> <flags...> [target].
-    'secenekler' shlex ile ayrilir (shell YOK -> literal token)."""
+    """Kali WSL argv: wsl.exe -d <distro> -- <tool> <lead-positionals> <flags...> [target].
+    Lider pozisyoneller = secenekler/ag-hedefi disindaki parametreler (alt-komut/mod/dosya;
+    or. trufflehog 'kaynak', ghunt 'modul', magika 'yol') -> eskiden dusuyordu. 'secenekler'
+    shlex ile ayrilir (shell YOK -> literal token)."""
+    lead = positional_args(get_spec(tool), params)
     flag_args = shlex.split(str(params.get("secenekler", "") or ""))
-    argv = ["wsl.exe", "-d", distro, "--", tool, *flag_args]
+    argv = ["wsl.exe", "-d", distro, "--", tool, *lead, *flag_args]
     target = target_value(params)
     if target is not None:
         argv.append(target)

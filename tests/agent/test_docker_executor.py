@@ -32,3 +32,14 @@ def test_run_unknown_tool_rejected():
 def test_run_unmapped_tool_message():
     out = DockerExecutor().run("sqlmap", {"url": "http://x"})
     assert "imaj" in out.lower()
+
+
+def test_build_argv_renders_subcommand_param_not_dropped():
+    # BUG FIX: secenekler+hedef disindaki parametreler (or. ghunt 'modul') dusuruluyordu.
+    # Imaj-haritasi enjekte ederek positional render'in docker yolundan da gectigini dogrula.
+    argv = build_argv("ghunt", {"modul": "email", "hedef": "a@b.com"},
+                      images={"ghunt": "octopus/ghunt"})
+    assert argv is not None
+    assert "email" in argv                     # modul artik dusmuyor
+    assert argv.index("email") < argv.index("a@b.com")  # alt-komut hedeften once
+    assert argv[-1] == "a@b.com"               # ag-hedefi en sona
