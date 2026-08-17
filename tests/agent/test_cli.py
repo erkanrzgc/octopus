@@ -14,8 +14,9 @@ def test_demo_runs_end_to_end():
 def test_main_routes_gguf(monkeypatch, capsys):
     called: dict = {}
 
-    def _fake(scope, model="octopus-v7"):
+    def _fake(scope, model="octopus-v7", role=None):
         called["args"] = (scope, model)
+        called["role"] = role
         return "GGUF_DEMO_OUT"
 
     monkeypatch.setattr(cli, "run_gguf_demo", _fake)
@@ -24,6 +25,21 @@ def test_main_routes_gguf(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "GGUF_DEMO_OUT" in out
     assert called["args"][1] == "octopus-v7"
+    assert called["role"] is None                    # --rol verilmedi -> tam katalog
+
+
+def test_main_gguf_passes_rol(monkeypatch, capsys):
+    """--rol recon-scan -> run_gguf_demo'ya role gecer (rol-scoped containment)."""
+    called: dict = {}
+
+    def _fake(scope, model="octopus-v7", role=None):
+        called["role"] = role
+        return "OUT"
+
+    monkeypatch.setattr(cli, "run_gguf_demo", _fake)
+    monkeypatch.setattr(sys, "argv", ["prog", "--gguf", "--rol", "recon-scan"])
+    cli.main()
+    assert called["role"] == "recon-scan"
 
 
 def test_docker_container_ip_rejects_injection(monkeypatch):
