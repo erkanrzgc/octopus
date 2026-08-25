@@ -23,6 +23,10 @@ def _format_run(msgs: list[Message], result, label: str) -> str:
 # kapisi — _docker_container_ip'te WSL komutuna yalniz bu deseni gecen ad girer.
 _CONTAINER_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 
+# skills parametresi icin sentinel: uc durum ayirt et — HIC gecilmedi -> SkillLibrary.load()
+# (canli beyin yolu AKTIF), None -> acikca kapat (test/hiz), <SkillLibrary> -> belirli kutuphane.
+_LOAD_SKILLS = object()
+
 
 def _scan_demo(executor, target: str, scope: list[str], secenekler: str, label: str) -> str:
     """Tek scripted nmap turu: model arac blogu -> policy -> executor -> geri-besleme -> cevap."""
@@ -61,21 +65,52 @@ def run_docker_demo(target: str = "octopus-target", scope: list[str] | None = No
     return _scan_demo(DockerExecutor(network=network), target, scope, f"-Pn -sV -p{port}", "docker demo bitti")
 
 
-def run_gguf_demo(scope: list[str] | None = None, model: str = "octopus-v7",
-                  executor=None, target: str = "10.10.10.5", label: str = "gguf demo bitti") -> str:
-    """GERCEK BEYIN: GgufModel (Ollama'da v0.7) dongüyü sürer. executor=None -> MockExecutor eller.
-    executor verilirse (ör. DockerExecutor) gercek beyin + gercek eller uctan-uca calisir.
-    Ollama yoksa GgufModel net HATA stringi döner -> döngü çökmez, onu nihai cevap alir."""
-    from agent.backends.gguf_model import GgufModel
+def _demo_registry(scope: list[str], executor, role: str | None = None) -> ToolRegistry:
+    """Demo registry: role verilirse rol-scoped (YAPISAL containment — rol-disi arac calismaz),
+    yoksa tam katalog (bugunku davranis). Olcum (2026-08-17): scoping DOGRULUGU artirmaz; degeri
+    guvenlik/containment (opt-in), accuracy-default DEGIL. Rapor: eval/reports/subagent_scoping_*."""
     from agent.policy import LabPolicy
     from agent.audit import AuditLog
+    pol = LabPolicy(scope=scope)
+    if role:
+        return ToolRegistry.scoped(role, policy=pol, executor=executor, audit=AuditLog.default())
+    return ToolRegistry(pol, executor, AuditLog.default())
+
+
+def run_gguf_demo(scope: list[str] | None = None, model: str = "octopus-v7",
+                  executor=None, target: str = "10.10.10.5", label: str = "gguf demo bitti",
+                  skills=_LOAD_SKILLS, role: str | None = None) -> str:
+    """GERCEK BEYIN: GgufModel (Ollama'da v0.7) dongüyü sürer. executor=None -> MockExecutor eller.
+    executor verilirse (ör. DockerExecutor) gercek beyin + gercek eller uctan-uca calisir.
+    Ollama yoksa GgufModel net HATA stringi döner -> döngü çökmez, onu nihai cevap alir.
+    skills: HIC gecilmezse SkillLibrary.load() ile skill katmani AKTIF (post-call correction);
+    None -> kapali (geriye-uyum/test); <SkillLibrary> -> belirli kutuphane enjekte et."""
+    from agent.backends.gguf_model import GgufModel
     if executor is None:
         from agent.executor import MockExecutor
         executor = MockExecutor()
+    if skills is _LOAD_SKILLS:
+        from agent.skills import SkillLibrary
+        skills = SkillLibrary.load()
     scope = scope or ["10.10.10.0/24"]
-    registry = ToolRegistry(LabPolicy(scope=scope), executor, AuditLog.default())
+    registry = _demo_registry(scope, executor, role)
     msgs = [Message("user", f"{target} yetkili lab hedefini tara")]
-    result = run_tool_loop(msgs, GgufModel(model=model), registry)
+    # Sistem promptu iki kosullu katman ile kurulur (taban EGITIM-BIREBIR korunur, sona eklenir):
+    #  1) Skill acikken: egitim-disi araclari (trufflehog/magika/ghunt) KESIF manifesti olarak ekle.
+    #  2) Gorev bir sunucu-OLAYI ise: RCA "kanit-once-sonuc" kurali ekle (assemble_incident_aware).
+    #     Kural GLOBAL uygulaninca toolcall'i bozar (dogru-arac 75->54) -> yalniz olay dilinde.
+    from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
+    from agent.incident import assemble_incident_aware_prompt
+    task = msgs[0].content
+    base = OCTOPUS_TOOL_SYSTEM_PROMPT
+    if skills is not None:
+        from agent.catalog import extension_augmented_system_prompt
+        base = extension_augmented_system_prompt(base)
+    system_prompt = assemble_incident_aware_prompt(base, task)
+    gguf_kwargs: dict = {"model": model}
+    if system_prompt != OCTOPUS_TOOL_SYSTEM_PROMPT:   # taban degistiyse (manifest veya RCA kurali)
+        gguf_kwargs["system_prompt"] = system_prompt
+    result = run_tool_loop(msgs, GgufModel(**gguf_kwargs), registry, skills=skills)
     return _format_run(msgs, result, label)
 
 
@@ -150,6 +185,8 @@ def main() -> None:
     ap.add_argument("--gguf", action="store_true", help="GgufModel: Ollama'da gercek v0.7")
     ap.add_argument("--assistant", action="store_true", help="Asistan araclari demo (jailed file + policy)")
     ap.add_argument("--model", default=None, help="Ollama model adi (varsayilan octopus-v7)")
+    ap.add_argument("--rol", default=None, help="rol-scoped subagent (containment): sadece o "
+                    "domain'in araclari calisir (or. recon-scan/web/blue-server). Bos=tam katalog")
     ap.add_argument("--target", default=None, help="hedef (mod varsayilanini ezer)")
     ap.add_argument("--port", type=int, default=None, help="taranacak port (mod varsayilani)")
     args = ap.parse_args()
@@ -159,7 +196,7 @@ def main() -> None:
         print(run_gguf_docker_demo(args.scope, args.model or "octopus-v7",
                                    args.target or "octopus-target"))
     elif args.gguf:
-        print(run_gguf_demo(args.scope, args.model or "octopus-v7"))
+        print(run_gguf_demo(args.scope, args.model or "octopus-v7", role=args.rol))
     elif args.docker:
         print(run_docker_demo(args.target or "octopus-target", args.scope, port=args.port or 80))
     elif args.real:

@@ -11,7 +11,7 @@ from __future__ import annotations
 import shlex
 import subprocess
 from dataclasses import dataclass, field
-from agent.catalog import get_spec, target_value
+from agent.catalog import get_spec, positional_args, target_value
 
 _DEFAULT_TIMEOUT = 180
 _DEFAULT_NETWORK = "octopus-lab"
@@ -31,9 +31,10 @@ def build_argv(tool: str, params: dict, network: str = _DEFAULT_NETWORK,
     image = images.get(tool)
     if image is None:
         return None
+    lead = positional_args(get_spec(tool), params)
     flag_args = shlex.split(str(params.get("secenekler", "") or ""))
     argv = ["wsl.exe", "-d", distro, "--", "docker", "run", "--rm", "--network", network,
-            image, *flag_args]
+            image, *lead, *flag_args]
     target = target_value(params)
     if target is not None:
         argv.append(target)

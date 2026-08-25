@@ -14,6 +14,11 @@ Beklenen:
 from __future__ import annotations
 
 import argparse
+import sys
+
+# Windows cp1254 konsolu model çıktısındaki 🐙/emoji'de UnicodeEncodeError veriyor → UTF-8'e zorla.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from agent.backends.gguf_model import GgufModel
 from agent.messages import Message

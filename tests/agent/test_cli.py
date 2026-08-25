@@ -14,8 +14,9 @@ def test_demo_runs_end_to_end():
 def test_main_routes_gguf(monkeypatch, capsys):
     called: dict = {}
 
-    def _fake(scope, model="octopus-v7"):
+    def _fake(scope, model="octopus-v7", role=None):
         called["args"] = (scope, model)
+        called["role"] = role
         return "GGUF_DEMO_OUT"
 
     monkeypatch.setattr(cli, "run_gguf_demo", _fake)
@@ -24,6 +25,21 @@ def test_main_routes_gguf(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "GGUF_DEMO_OUT" in out
     assert called["args"][1] == "octopus-v7"
+    assert called["role"] is None                    # --rol verilmedi -> tam katalog
+
+
+def test_main_gguf_passes_rol(monkeypatch, capsys):
+    """--rol recon-scan -> run_gguf_demo'ya role gecer (rol-scoped containment)."""
+    called: dict = {}
+
+    def _fake(scope, model="octopus-v7", role=None):
+        called["role"] = role
+        return "OUT"
+
+    monkeypatch.setattr(cli, "run_gguf_demo", _fake)
+    monkeypatch.setattr(sys, "argv", ["prog", "--gguf", "--rol", "recon-scan"])
+    cli.main()
+    assert called["role"] == "recon-scan"
 
 
 def test_docker_container_ip_rejects_injection(monkeypatch):
@@ -40,6 +56,98 @@ def test_docker_container_ip_rejects_injection(monkeypatch):
     assert cli._docker_container_ip("$(whoami)") is None
     assert cli._docker_container_ip("a b") is None
     assert "ran" not in called                            # subprocess'e hic gidilmedi
+
+
+def test_gguf_demo_activates_skills_by_default(monkeypatch):
+    """Canlı beyin yolu skill katmanini VARSAYILAN olarak yukler (dormant DEGIL)."""
+    import agent.backends.gguf_model as gm
+    from agent.loop import ToolLoopResult
+    from agent.skills import SkillLibrary
+    captured: dict = {}
+
+    monkeypatch.setattr(gm, "GgufModel", lambda **k: (lambda msgs: "cevap"))
+
+    def _fake_loop(msgs, gen, registry, *, max_steps=10, skills=None):
+        captured["skills"] = skills
+        return ToolLoopResult(final="ok", steps=1, calls=[])
+
+    monkeypatch.setattr(cli, "run_tool_loop", _fake_loop)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"])
+    assert isinstance(captured["skills"], SkillLibrary)
+    assert captured["skills"].tools                        # 13 arac-skill yuklendi
+
+
+def test_gguf_demo_skills_can_be_disabled(monkeypatch):
+    """Testler/hiz icin skills=None ile acikca kapatilabilir (geriye-uyum)."""
+    import agent.backends.gguf_model as gm
+    from agent.loop import ToolLoopResult
+    captured: dict = {}
+
+    monkeypatch.setattr(gm, "GgufModel", lambda **k: (lambda msgs: "cevap"))
+
+    def _fake_loop(msgs, gen, registry, *, max_steps=10, skills=None):
+        captured["skills"] = skills
+        return ToolLoopResult(final="ok", steps=1, calls=[])
+
+    monkeypatch.setattr(cli, "run_tool_loop", _fake_loop)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"], skills=None)
+    assert captured["skills"] is None
+
+
+def _capture_gguf_kwargs(monkeypatch):
+    """GgufModel kwargs'ini (system_prompt dahil) yakalayan sahte kur + run_tool_loop'u kes."""
+    import agent.backends.gguf_model as gm
+    from agent.loop import ToolLoopResult
+    captured: dict = {}
+
+    def _fake_model(**k):
+        captured.update(k)
+        return lambda msgs: "cevap"
+
+    monkeypatch.setattr(gm, "GgufModel", _fake_model)
+    monkeypatch.setattr(
+        cli, "run_tool_loop",
+        lambda *a, **k: ToolLoopResult(final="ok", steps=1, calls=[]),
+    )
+    return captured
+
+
+def test_gguf_demo_augments_system_prompt_with_extension_tools(monkeypatch):
+    """Skills aktifken sistem promptu 3 egitim-disi araci TANITIR (kesif manifesti)."""
+    from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
+    captured = _capture_gguf_kwargs(monkeypatch)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"])
+    sp = captured["system_prompt"]
+    assert sp.startswith(OCTOPUS_TOOL_SYSTEM_PROMPT)         # egitim-birebir taban KORUNUR
+    for name in ("trufflehog", "magika", "ghunt"):
+        assert name in sp
+    assert "nmap" not in sp                                  # 117 egitilmis DOKULMEZ
+
+
+def test_gguf_demo_prompt_unchanged_when_skills_off(monkeypatch):
+    """skills=None + normal tarama -> sistem promptu egitim-birebir tabana ESIT (hic ek yok)."""
+    from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
+    captured = _capture_gguf_kwargs(monkeypatch)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"], skills=None)
+    # system_prompt hic gecilmedi -> GgufModel kendi varsayilanini kullanir (taban).
+    assert captured.get("system_prompt", OCTOPUS_TOOL_SYSTEM_PROMPT) == OCTOPUS_TOOL_SYSTEM_PROMPT
+
+
+def test_gguf_demo_adds_rca_rule_for_incident_task(monkeypatch):
+    """Gorev sunucu-OLAYI dili icerirse RCA kanit-once-sonuc kurali sistem-promptuna eklenir."""
+    from agent.incident import RCA_INCIDENT_RULE
+    captured = _capture_gguf_kwargs(monkeypatch)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"], skills=None,
+                      target="sunucuda 'fork: retry: resource temporarily unavailable' hatasi var")
+    assert RCA_INCIDENT_RULE in captured["system_prompt"]
+
+
+def test_gguf_demo_no_rca_rule_for_scan_task(monkeypatch):
+    """Normal tarama gorevi -> RCA kurali EKLENMEZ (scoping: yalniz olay diline atesler)."""
+    from agent.incident import RCA_INCIDENT_RULE
+    captured = _capture_gguf_kwargs(monkeypatch)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"], skills=None)  # default target = tarama
+    assert RCA_INCIDENT_RULE not in captured.get("system_prompt", "")
 
 
 def test_main_routes_gguf_docker_combo(monkeypatch, capsys):

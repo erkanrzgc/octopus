@@ -40,7 +40,7 @@ runpod_val_log.jsonl
 *.pt
 *.ckpt
 *.tgz
-models/octopus-v7-tokenizer/
+models/octopus-v*-tokenizer/
 
 # --- RAG vektör deposu (yeniden inşa edilir) ---
 rag/chroma/

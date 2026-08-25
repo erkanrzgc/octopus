@@ -13,6 +13,11 @@ from __future__ import annotations
 
 import argparse
 import re
+import sys
+
+# Windows cp1254 konsolu model çıktısındaki 🐙/emoji'de UnicodeEncodeError veriyor → UTF-8'e zorla.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 from agent.backends.gguf_model import GgufModel
 from agent.messages import Message
@@ -56,10 +61,15 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="octopus-v9")
     ap.add_argument("--tokenizer-dir", default="models/octopus-v8-tokenizer")
+    ap.add_argument("--temperature", type=float, default=0.0,
+                    help="0.0 = deterministik (adil paired karsilastirma); payload dogrulugu tekrarlanabilir olmali")
+    ap.add_argument("--num-predict", type=int, default=512,
+                    help="512: uzun payload'lar (ELF/socat/php) 320'de kesilip yanlis-BAD olmasin")
     args = ap.parse_args()
 
     gm = GgufModel(model=args.model, tokenizer_dir=args.tokenizer_dir,
-                   system_prompt=OCTOPUS_SYSTEM_PROMPT, num_predict=320)
+                   system_prompt=OCTOPUS_SYSTEM_PROMPT,
+                   temperature=args.temperature, num_predict=args.num_predict)
     ok = 0
     for prompt, tip in PROMPTS:
         out = gm([Message("user", prompt)])
