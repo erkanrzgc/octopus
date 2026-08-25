@@ -125,12 +125,29 @@ def test_gguf_demo_augments_system_prompt_with_extension_tools(monkeypatch):
 
 
 def test_gguf_demo_prompt_unchanged_when_skills_off(monkeypatch):
-    """skills=None -> sistem promptu egitim-birebir tabana ESIT (hic ek yok)."""
+    """skills=None + normal tarama -> sistem promptu egitim-birebir tabana ESIT (hic ek yok)."""
     from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
     captured = _capture_gguf_kwargs(monkeypatch)
     cli.run_gguf_demo(scope=["10.10.10.0/24"], skills=None)
     # system_prompt hic gecilmedi -> GgufModel kendi varsayilanini kullanir (taban).
     assert captured.get("system_prompt", OCTOPUS_TOOL_SYSTEM_PROMPT) == OCTOPUS_TOOL_SYSTEM_PROMPT
+
+
+def test_gguf_demo_adds_rca_rule_for_incident_task(monkeypatch):
+    """Gorev sunucu-OLAYI dili icerirse RCA kanit-once-sonuc kurali sistem-promptuna eklenir."""
+    from agent.incident import RCA_INCIDENT_RULE
+    captured = _capture_gguf_kwargs(monkeypatch)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"], skills=None,
+                      target="sunucuda 'fork: retry: resource temporarily unavailable' hatasi var")
+    assert RCA_INCIDENT_RULE in captured["system_prompt"]
+
+
+def test_gguf_demo_no_rca_rule_for_scan_task(monkeypatch):
+    """Normal tarama gorevi -> RCA kurali EKLENMEZ (scoping: yalniz olay diline atesler)."""
+    from agent.incident import RCA_INCIDENT_RULE
+    captured = _capture_gguf_kwargs(monkeypatch)
+    cli.run_gguf_demo(scope=["10.10.10.0/24"], skills=None)  # default target = tarama
+    assert RCA_INCIDENT_RULE not in captured.get("system_prompt", "")
 
 
 def test_main_routes_gguf_docker_combo(monkeypatch, capsys):

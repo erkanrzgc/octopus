@@ -95,16 +95,21 @@ def run_gguf_demo(scope: list[str] | None = None, model: str = "octopus-v7",
     scope = scope or ["10.10.10.0/24"]
     registry = _demo_registry(scope, executor, role)
     msgs = [Message("user", f"{target} yetkili lab hedefini tara")]
-    # Skill katmani acikken: egitim-disi araclari (trufflehog/magika/ghunt) sistem promptuna
-    # KESIF manifesti olarak ekle -> model bunlari retrain'siz cagirabilir. Taban prompt
-    # egitim-birebir KORUNUR (basa eklenmez, sonuna). skills=None -> hic dokunma (taban).
-    gguf_kwargs: dict = {"model": model}
+    # Sistem promptu iki kosullu katman ile kurulur (taban EGITIM-BIREBIR korunur, sona eklenir):
+    #  1) Skill acikken: egitim-disi araclari (trufflehog/magika/ghunt) KESIF manifesti olarak ekle.
+    #  2) Gorev bir sunucu-OLAYI ise: RCA "kanit-once-sonuc" kurali ekle (assemble_incident_aware).
+    #     Kural GLOBAL uygulaninca toolcall'i bozar (dogru-arac 75->54) -> yalniz olay dilinde.
+    from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
+    from agent.incident import assemble_incident_aware_prompt
+    task = msgs[0].content
+    base = OCTOPUS_TOOL_SYSTEM_PROMPT
     if skills is not None:
         from agent.catalog import extension_augmented_system_prompt
-        from data.sft.persona import OCTOPUS_TOOL_SYSTEM_PROMPT
-        augmented = extension_augmented_system_prompt(OCTOPUS_TOOL_SYSTEM_PROMPT)
-        if augmented != OCTOPUS_TOOL_SYSTEM_PROMPT:   # eklenti varsa manifestli promptu kullan
-            gguf_kwargs["system_prompt"] = augmented
+        base = extension_augmented_system_prompt(base)
+    system_prompt = assemble_incident_aware_prompt(base, task)
+    gguf_kwargs: dict = {"model": model}
+    if system_prompt != OCTOPUS_TOOL_SYSTEM_PROMPT:   # taban degistiyse (manifest veya RCA kurali)
+        gguf_kwargs["system_prompt"] = system_prompt
     result = run_tool_loop(msgs, GgufModel(**gguf_kwargs), registry, skills=skills)
     return _format_run(msgs, result, label)
 
