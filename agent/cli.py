@@ -147,8 +147,9 @@ def run_gguf_docker_demo(scope: list[str] | None = None, model: str = "octopus-v
                          target=real_target, label="gguf+docker uctan uca bitti")
 
 
-def run_assistant_demo(workspace: str | None = None) -> str:
-    """Asistan araclari demo: gercek jailed dosya islemi + policy reddi (mock guvenlik elleri)."""
+def run_assistant_demo(workspace: str | None = None, real_cmd: bool = False) -> str:
+    """Asistan araclari demo: gercek jailed dosya islemi + policy reddi (mock guvenlik elleri).
+    real_cmd=True -> run_cmd izole docker sandbox'ta GERCEKTEN calisir (alpine, --network none)."""
     import tempfile
     from agent.audit import AuditLog
     from agent.backends.assistant_executor import AssistantExecutor
@@ -157,14 +158,24 @@ def run_assistant_demo(workspace: str | None = None) -> str:
     from agent.policy import LabPolicy
     from agent.toolcall import ToolCall
     ws = workspace or tempfile.mkdtemp(prefix="octopus-ws-")
+    sandbox = None
+    if real_cmd:
+        from agent.backends.sandbox_executor import DockerSandboxExecutor
+        sandbox = DockerSandboxExecutor()  # None kalirsa AssistantExecutor MockExecutor'a duser
     # ws AYNI olmali: policy guard (workspace_root) ile executor (root) ayni hapishaneyi gormeli.
-    execu = CompositeExecutor(security=MockExecutor(), assistant=AssistantExecutor(ws))
-    registry = ToolRegistry(LabPolicy(scope=[], workspace_root=ws), execu, AuditLog.default())
+    execu = CompositeExecutor(security=MockExecutor(),
+                              assistant=AssistantExecutor(ws, sandbox=sandbox))
+    # real_cmd = kullanicinin acik opt-in'i -> run_cmd (risk=high) sandbox'a ulassin diye
+    # allow_high. Uretimde run_cmd onayi per-cagri insan kapisidir; bu DEMO opt-in'i gosterir.
+    registry = ToolRegistry(LabPolicy(scope=[], allow_high=real_cmd, workspace_root=ws),
+                            execu, AuditLog.default())
     steps = [
         ToolCall(name="write_file", params={"yol": "not.txt", "icerik": "Octópus lab notu"}),
         ToolCall(name="read_file", params={"yol": "not.txt"}),
         ToolCall(name="write_file", params={"yol": "../kacis.txt", "icerik": "x"}),  # reddedilmeli
     ]
+    if real_cmd:  # gercek sandbox turunda run_cmd'yi de goster (docker yoksa zarifce HATA doner)
+        steps.append(ToolCall(name="run_cmd", params={"komut": "echo octopus-sandbox && id && pwd"}))
     lines = [f"[workspace] {ws}"]
     for c in steps:
         lines.append(f"[{c.name}] -> {registry.invoke(c)}")
@@ -184,6 +195,8 @@ def main() -> None:
     ap.add_argument("--docker", action="store_true", help="DockerExecutor: lab docker aginda gercek nmap")
     ap.add_argument("--gguf", action="store_true", help="GgufModel: Ollama'da gercek v0.7")
     ap.add_argument("--assistant", action="store_true", help="Asistan araclari demo (jailed file + policy)")
+    ap.add_argument("--real-cmd", action="store_true", help="run_cmd'yi GERCEK docker sandbox'ta "
+                    "calistir (alpine, --network none, --rm; Docker gerekir). --assistant ile.")
     ap.add_argument("--model", default=None, help="Ollama model adi (varsayilan octopus-v7)")
     ap.add_argument("--rol", default=None, help="rol-scoped subagent (containment): sadece o "
                     "domain'in araclari calisir (or. recon-scan/web/blue-server). Bos=tam katalog")
@@ -191,7 +204,7 @@ def main() -> None:
     ap.add_argument("--port", type=int, default=None, help="taranacak port (mod varsayilani)")
     args = ap.parse_args()
     if args.assistant:
-        print(run_assistant_demo())
+        print(run_assistant_demo(real_cmd=args.real_cmd))
     elif args.gguf and args.docker:
         print(run_gguf_docker_demo(args.scope, args.model or "octopus-v7",
                                    args.target or "octopus-target"))
